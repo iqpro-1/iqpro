@@ -32,7 +32,7 @@ app.use('/uploads', express.static(pastaUploads));
 
 
 // Conexão com MongoDB
-mongoose.connect("mongodb://127.0.0.1:27017/qi-provas", {
+mongoose.connect(process.env.MONGO_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
