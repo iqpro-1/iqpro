@@ -30,10 +30,6 @@ const upload = multer({ storage });
 const pastaUploads = path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(pastaUploads));
 
-// Servir imagens das questões (pasta imgs)
-app.use('/imgs', express.static(
-  path.join(__dirname, '..', 'BLUEX', 'data', 'bluex_dataset', 'imgs')
-));
 
 // Conexão com MongoDB
 mongoose.connect("mongodb://127.0.0.1:27017/qi-provas", {
