@@ -183,6 +183,40 @@ Apenas UMA alternativa deve ter "isCorrect": true, as outras "isCorrect": false.
     res.status(500).json({ error: "Erro ao gerar questão IA", detalhes: err.message });
   }
 });
+const puppeteer = require('puppeteer');
+
+app.post('/api/gerar-pdf', async (req, res) => {
+  const { html } = req.body;
+  if (!html) {
+    return res.status(400).json({ error: "HTML ausente" });
+  }
+  let browser = null;
+  try {
+    browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: "20px", bottom: "20px", left: "20px", right: "20px" }
+    });
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename="prova.pdf"',
+    });
+    res.send(pdfBuffer);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao gerar PDF", details: err.message });
+  } finally {
+    if (browser) await browser.close();
+  }
+});
 
  
 // Iniciar servidor
