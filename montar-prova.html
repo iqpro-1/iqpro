@@ -1,0 +1,2300 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>QI Provas - Montar Prova</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  
+  <!-- CONFIGURAÇÃO MathJax deve vir ANTES do script -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(','\\)']] },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+
+  <!-- Quill Core -->
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
+
+  <!-- Quill Image Resize -->
+  <script src="https://cdn.jsdelivr.net/npm/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
+
+  <!-- KaTeX CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters: [{left: '\\\\(', right: '\\\\)', display: false}, {left: '\\\\[', right: '\\\\]', display: true}]});"></script>
+</head>
+
+
+<style>
+  .pagina-a4 {
+  width: 793px;
+  min-height: 1122px;
+  margin: 0 auto;
+  background: white;
+  box-shadow: 0 0 5px #bbb;
+  padding: 40px 50px 40px 50px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  page-break-after: always;
+  font-family: Arial, sans-serif;
+}
+
+/* RESTRIÇÃO DE FONTE E ESPAÇAMENTO */
+.pagina-a4,
+.pagina-a4 * {
+  font-size: 15px !important;
+  line-height: 1.20 !important;
+}
+.pagina-a4 h1, .pagina-a4 .titulo {
+  font-size: 16px !important;
+  font-weight: bold;
+  line-height: 1.18 !important;
+}  
+    .logo-area { height: 110px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 14px; margin-bottom: 10px; border: 1px dashed #ccc; cursor: pointer; }
+    .assinatura-linha { border-bottom: 1px solid #000; width: 500px; margin: 0 auto 2px auto; height: 28px; }
+    .campo-gabarito { border-radius: 16px; border: 2px solid #111; padding: 14px 18px; display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box; justify-content: space-between;}
+    .separador-questoes { display: flex; align-items: center; gap: 8px; margin-top: 2rem; margin-bottom: 1.5rem;}
+    .separador-questoes span { font-size: 1.15rem; font-weight: bold; flex: 1; text-align: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 2px;}
+    .btn-add-container { position: relative; display:inline-block;}
+    .dropdown-menu { position: absolute; left: 0; z-index: 999; background: #fff; border: 1px solid #bbb; border-radius: 7px; box-shadow: 0 6px 24px #0002; min-width: 200px; min-height: 0; padding: 6px 0; display: none;}
+    .dropdown-menu button { width: 100%; text-align: left; background: none; border: none; padding: 9px 16px; font-size: 1rem; cursor: pointer; transition: background .15s;}
+    .dropdown-menu button:hover { background: #aae2bb; }
+    .btn-green { background: #22d3ee; color: #065f46; font-weight: bold; border-radius: 9999px; border: none; padding: 2px 18px; font-size: 1.45rem; margin-right: 8px; cursor: pointer; box-shadow: 0 1px 3px #0001; transition: background .2s;}
+    .btn-green:hover { background: #2dd4bf; color: #055143;}
+    .btn-save { background: #d1d5db; color: #1f2937; font-weight: 500; border-radius: 9999px; border: none; padding: 7px 28px; font-size: 1.01rem; margin: 24px 0 4px 0; cursor: pointer; box-shadow: 0 1px 4px #0001; display: block; margin-left: auto; margin-right: auto; transition: background .18s;}
+    .btn-save:hover { background: #bcbcbc; color: #000;}
+    .questao-bloco-prova { border: none; background: none; padding: 0; margin-bottom: 32px; page-break-inside: avoid;}
+    .btn-remover-questao { color: #e11d48; background: none; border: none; font-size: 1.3rem; margin-right: 10px; cursor: pointer; vertical-align:top;}
+    .numero-questao { font-weight: bold; color: #111; font-size: 1.08rem; margin-right: 8px; vertical-align: middle; display: inline-block; min-width: 38px;}
+    .fonte-fonte { color: #777; font-size: 0.99rem; margin-left: 3px; font-weight: 400;}
+    .enunciado-bloco { text-align: justify; margin-bottom: 12px; margin-top: 4px;}
+    /* Reduz margens internas de parágrafos inseridos pelo Quill */
+
+.img-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.img-center img {
+  display: inline-block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
+    .alt-correta { color: #16a34a; font-weight: bold; }
+    ol { margin-left: 0; padding-left: 18px; text-align: justify; }
+    .bloco-actions { margin-top: 3px; text-align: right; }
+    @media print { body, .pagina-a4, .questao-bloco-prova, .bloco-actions, .btn-remover-questao, .btn-add, .btn-save, #logoUpload, #btnAdd, #dropdownMenu, #btnSalvarQuestao, .titulo-lista, .btn-add-container, .btn-float { background: none !important; box-shadow: none !important; border: none !important; } textarea, input[type="text"], input[type="url"], select, button { display: none !important; } }
+    #logoUpload { display: none; }
+    .logo-area { transition: box-shadow 0.16s; }
+    .logo-area:hover { box-shadow: 0 0 0 3px #bae6fd; border-color: #38bdf8; }
+    .btn-float { position: fixed; right: 26px; bottom: 26px; z-index: 9999; background: #22d3ee; color: #fff; font-weight: bold; border: none; border-radius: 50px; box-shadow: 0 4px 24px #0003; padding: 15px 32px; font-size: 1.3rem; cursor: pointer; transition: background .16s;}
+    .btn-float:hover { background: #0ea5e9;}
+    .gabarito-vertical {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  letter-spacing: 2px;
+  font-weight: bold;
+  font-size: 1.07rem;
+  color: #000000;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  height: 95px;
+  user-select: none;
+    }
+
+/* Toolbar Word/Writer para desktop */
+.ql-toolbar.ql-snow {
+  min-height: 30px !important;
+  padding: 1px 4px !important;
+  height: 32px !important;
+  background: linear-gradient(to right, #60a5fa, #93c5fd, #dfebfc) !important;
+  border: none !important;
+  border-radius: 6px 6px 0 0 !important;
+}
+
+.ql-toolbar .ql-formula, 
+.ql-toolbar .ql-bold, 
+.ql-toolbar .ql-italic, 
+.ql-toolbar .ql-underline,
+.ql-toolbar button,
+.ql-toolbar .ql-picker-label {
+  width: 27px !important;
+  height: 27px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  font-size: 1rem !important;
+  margin: 0 1px 0 0 !important;
+}
+
+.ql-toolbar button:hover, 
+.ql-toolbar .ql-picker-label:hover {
+  background: #e3e7ed !important;
+  border-color: #8e99ad !important;
+}
+.ql-toolbar .ql-active,
+.ql-toolbar button:active {
+  background: #d2dae6 !important;
+  border-color: #5986f4 !important;
+}
+.ql-toolbar .ql-separator {
+  display: inline-block;
+  width: 1px;
+  height: 24px;
+  background: #bfc4c9;
+  margin: 0 5px;
+  vertical-align: middle;
+  content: "";
+}
+
+.quill-editor-custom .ql-editor {
+  min-height: 250px !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+  padding-bottom: 12px;
+}
+
+ /* Aplica a todos os lugares: Quill, renderização, preview e PDF */
+  .ql-editor img,
+  .quill-editor-custom img,
+  .bloco-renderizado img,
+  .bloco-preview img,
+  .bloco-alternativas img,
+  .bloco-dissertativa img,
+  .bloco-fonte img,
+  div img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 14px auto; /* centraliza a imagem */
+  }
+
+   .ql-editor {
+    font-size: 1rem; /* ou use 18px, 20px, etc. */
+    line-height: 1.6;
+  }
+.coluna-pagina {
+  position: relative;
+  display: flex;
+  gap: 16px; /* ou ajuste como preferir */
+}
+
+.coluna-pagina::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background-color: #ccc; /* ou #888 se quiser mais escura */
+  z-index: 1;
+}
+
+.alternativa-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 3px;
+  line-height: 1.25;
+  font-size: 1rem;
+  text-align: justify;
+}
+
+/* Bolha das alternativas nas QUESTÕES */
+.alternativa-letra {
+  display: inline-block;
+  vertical-align: top;
+  margin-top: 0;
+  margin-right: 5px;
+}
+
+
+/* Bolha do GABARITO (centralizada na célula) */
+.gabarito-bolha {
+  display: block;
+  margin: 0 auto;
+}
+
+
+@media (max-width: 600px) {
+  #previewBarraFixa {
+    top: 12px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    padding: 8px 2vw !important;
+    min-width: unset !important;
+    max-width: 98vw !important;
+    font-size: 0.97rem !important;
+  
+  }
+}
+
+  </style>
+</head>
+
+ <style>
+    .bloco-cabecalho-questao {
+      background-color: #888;
+      color: white;
+      padding: 2px 12px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0px;
+      font-family: sans-serif;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .img-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 12px 0;
+}
+
+  </style>
+<body 
+ 
+
+class="bg-gray-200 min-h-screen">
+
+<!-- Toolbar personalizada para o editor Quill -->
+<div id="toolbar-custom">
+  <button class="ql-bold" title="Negrito"></button>
+  <button class="ql-italic" title="Itálico"></button>
+  <button class="ql-underline" title="Sublinhado"></button>
+  <button class="ql-formula" title="Fórmula"></button>
+  <button class="ql-list" value="ordered" title="Lista Ordenada"></button>
+  <button class="ql-list" value="bullet" title="Lista Não Ordenada"></button>
+</div>
+
+ <!-- Painel lateral de Símbolos Matemáticos -->
+<div id="painel-simbolos-math" 
+     style="display:none; position:fixed; top:70px; left:16px; width:260px; background:#fff; border-radius:12px; box-shadow:0 4px 18px #2223; z-index:9999; padding:16px 12px 10px 12px;">
+  <div style="font-weight:bold; margin-bottom:8px;">Símbolos Matemáticos</div>
+  <div id="simbolos-lista" style="display:flex; flex-wrap:wrap; gap:8px 6px;">
+    <!-- Símbolos são inseridos aqui via JS -->
+  </div>
+  <button onclick="fecharPainelSimbolos()" style="margin-top:12px; width:100%; background:#eee; border-radius:8px; border:none; padding:5px; font-weight:bold; color:#444; cursor:pointer;">Fechar</button>
+</div>
+
+
+
+ <!-- PREVIEW DAS PÁGINAS A4 (inicialmente oculto) -->
+<div id="previewProvaContainer" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0008; z-index:99999; overflow-y:auto; align-items:flex-start; justify-content:center;">
+  
+<!-- Barra flutuante moderna do preview (só botão de gerar PDF, fixa embaixo) -->
+<div id="previewBarraFixa" 
+     class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100000] flex items-center justify-center transition-all pointer-events-none"
+     style="width:100vw;">
+  <button id="btnConfirmarPreview"
+          class="pointer-events-auto flex items-center gap-2 px-8 py-4 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold shadow-2xl border-0 transition-all text-xl drop-shadow-lg ring-emerald-400/30 ring-2 hover:ring-4"
+          style="box-shadow:0 6px 32px #14b8a680;">
+    <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" class="drop-shadow">
+      <path d="M12 4v12m0 0l-5-5m5 5l5-5"/>
+    </svg>
+    Gerar PDF Final
+  </button>
+</div>
+
+  <!-- O resto do preview vai aqui, ex: o conteúdo das páginas -->
+  <div style="background:transparent; border:none; box-shadow:none; padding:0; width:auto; min-height:auto; max-width:none; max-height:none; overflow:auto; position:relative;">
+    <h2 style="font-size:1.25rem; margin-bottom:18px; text-align:center; font-weight:bold;">Preview das Páginas da Prova</h2>
+    <div id="previewPaginasArea" style="display:flex; flex-direction:column; gap:32px; align-items:center;"></div>
+  </div>
+</div>
+
+</div>
+
+  <!-- Modal de preenchimento obrigatório -->
+  <div id="modalCamposObrigatorios" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0008; z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:18px; box-shadow:0 8px 36px #2224; padding:36px 28px 22px 28px; max-width:340px; width:90%; margin:auto;">
+      <h2 style="font-size:1.3rem; margin-bottom:10px; text-align:center;">Preencha os campos obrigatórios</h2>
+      <label style="display:block; margin-bottom:10px;">
+        Área do Conhecimento:<br>
+        <select id="modalAreaConhecimento" required style="width:100%; padding:5px; border-radius:6px; border:1px solid #ccc;">
+          <option value="">Selecione...</option>
+          <option>Linguagens</option>
+          <option>Matemática</option>
+          <option>Ciências da Natureza</option>
+          <option>Ciências Humanas</option>
+          <option>Educação Técnica</option>
+        </select>
+      </label>
+      <label style="display:block; margin-bottom:10px;">
+        Componente Curricular:<br>
+        <select id="modalComponenteCurricular" required style="width:100%; padding:5px; border-radius:6px; border:1px solid #ccc;">
+          <option value="">Selecione...</option>
+          <option>Artes</option>
+          <option>Educação Física</option>
+          <option>Língua Portuguesa</option>
+          <option>Língua Estrangeira</option>
+          <option>Matemática</option>
+          <option>Física</option>
+          <option>Química</option>
+          <option>Biologia</option>
+          <option>Geografia</option>
+          <option>Sociologia</option>
+          <option>História</option>
+          <option>Filosofia</option>
+        </select>
+      </label>
+      <label style="display:block; margin-bottom:10px;">
+        Objeto do Conhecimento (Tema/Assunto):<br>
+        <input type="text" id="modalObjetoConhecimento" style="width:100%; padding:5px; border-radius:6px; border:1px solid #ccc;" required />
+      </label>
+      <div style="text-align:center;">
+        <button id="btnConfirmarCamposObrigatorios" style="margin-top:14px; background:#22c55e; color:#fff; border:none; border-radius:8px; padding:10px 28px; font-size:1rem; font-weight:bold; cursor:pointer;">Confirmar</button>
+        <button id="btnCancelarCamposObrigatorios" style="margin-top:14px; margin-left:10px; background:#bbb; color:#222; border:none; border-radius:8px; padding:10px 20px; font-size:1rem; cursor:pointer;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+<!-- Modal IA para gerar questões -->
+<div id="modalIa" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0008; z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:18px; box-shadow:0 8px 36px #2224; padding:36px 28px 22px 28px; max-width:440px; width:92%; margin:auto; position:relative;">
+    <h2 style="font-size:1.35rem; margin-bottom:16px; text-align:center; font-weight:bold;">Gerar Questão com IA</h2>
+    <label style="display:block; margin-bottom:12px;">
+      <span style="font-weight:500; margin-bottom:3px; display:block;">Digite o comando para a IA</span>
+      <textarea id="inputPromptIa" rows="4" style="width:100%; border-radius:8px; border:1px solid #ccc; padding:10px; font-size:1rem; resize:vertical;" placeholder="Ex: Gere uma questão de história sobre Revolução Francesa..."></textarea>
+    </label>
+    <div id="iaStatusMsg" style="margin-bottom:10px; color:#0a0; text-align:center; display:none;">Gerando questão...</div>
+    <div style="display:flex; justify-content:flex-end; gap:12px;">
+      <button id="btnCancelarIa" style="background:#bbb; color:#222; border:none; border-radius:8px; padding:10px 22px; font-size:1rem; cursor:pointer;">Cancelar</button>
+      <button id="btnConfirmarIa" style="background:#3b82f6; color:#fff; border:none; border-radius:8px; padding:10px 22px; font-size:1rem; font-weight:bold; cursor:pointer;">Gerar Questão</button>
+    </div>
+    <button id="btnFecharIa" style="position:absolute; top:16px; right:16px; font-size:1.3rem; color:#888; background:none; border:none; cursor:pointer;">&times;</button>
+  </div>
+</div>
+
+<!-- Modal da pg A4-->
+  <div class="pagina-a4" id="provaArea">
+    <div class="logo-area" id="logoPreview" title="Clique para inserir o logo"></div>
+    <input type="file" id="logoUpload" accept="image/*">
+    <div class="campo-gabarito mb-3">
+      <div class="gabarito-vertical">GABARITO</div>
+      
+      <div class="campo-gabarito-dados">
+  <div class="font-bold text-base mb-2"></div>
+  <div style="display: flex; justify-content: flex-start;">
+    <div>
+      <div id="gabaritoNumeros"></div>
+      <div id="gabaritoBolhas"></div>
+    </div>
+  </div>
+</div>
+     <div class="campo-gabarito-qrcode" style="display: flex; align-items: center; justify-content: flex-end; flex: 1; height: 100%;">
+  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <div id="qrCodeProvaExemplo" style="width: 84px; height: 84px;"></div>
+  </div>
+</div>
+    </div>
+    <div class="flex justify-between items-center mb-2">
+      <div>
+        <div class="assinatura-linha"></div>
+        <div class="text-center text-xs text-gray-700 mb-1">Assinatura do Estudante</div>
+      </div>
+      <div class="font-medium text-base text-gray-800">
+        Turma: <input id="campoTurma" class="border-b border-gray-400 w-24 text-center bg-transparent outline-none" placeholder="Turma">
+      </div>
+    </div>
+    <div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 12px;">
+      <textarea id="campoRecomendacoes" class="recomendacoes w-full border border-gray-200 rounded px-2 py-1" rows="4">Preencha seu nome e turma nos campos acima.
+Leia atentamente todas as questões e resolva com calma. 
+Marque o gabarito com caneta esferográfica azul ou preta.
+Preencha toda a bolha da questão no gabarito e não o rasure.</textarea>
+      <div style="min-width:100px; min-height:100px; border:2px solid #888; border-radius:7px; margin-left:10px; background: #fff; display:flex; align-items:center; justify-content:center; font-size:0.95rem;">
+        Nota
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between my-8 gap-6 w-full">
+
+  <!-- Bloco de botões à esquerda -->
+  <div class="flex items-center gap-2 relative">
+    <!-- Botão de adicionar bloco -->
+    <button id="btnAdd" 
+      class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full w-10 h-10 flex items-center justify-center shadow-lg transition-all"
+      title="Adicionar bloco">
+      <span class="text-2xl">+</span>
+    </button>
+
+    <!-- Botão de IA -->
+    <button id="btnIaGemini"
+      class="bg-lime-300 hover:bg-lime-400 text-green-800 font-bold rounded-full w-10 h-10 flex items-center justify-center shadow-lg transition-all"
+      title="Gerar questão com IA">
+      <span class="text-base font-black">IA</span>
+    </button>
+        <div id="dropdownMenu" class="dropdown-menu">
+          <button onclick="adicionarBloco('fonte')">Fonte/Ano</button>
+  <button onclick="adicionarBloco('texto')">Texto</button>
+  <button onclick="adicionarBloco('alternativas')">Alternativas</button>
+  <button onclick="adicionarBloco('dissertativa')">Resposta Dissertativa</button>
+  <button onclick="adicionarBloco('calculo')">Campo para Cálculo</button>
+
+
+</div>
+        
+      </div>
+        <span class="flex-1 text-2 font-bold text-center tracking-tight border-b-2 border-gray-200 pb-1 mx-4 select-none">QUESTÕES</span>
+  <!-- Espaço para equilíbrio visual à direita -->
+  <div class="w-20"></div>
+</div>
+
+<!--separador de coluna-->
+
+  <div class="coluna-pagina" style="display: flex; position: relative; width: 100%;">
+  <div class="coluna-esquerda" style="width: 49%; z-index: 2;"></div>
+
+  <!-- LINHA DE DIVISÃO VISÍVEL -->
+  <div style="width: 0.8px; background-color: #888; height: 100%;"></div>
+
+  <div class="coluna-direita" style="width: 49%; z-index: 2;"></div>
+</div>
+
+
+
+    <div id="campoFonteQuestao" style="font-style: italic; color: #555; margin-bottom: 10px;"></div>
+
+    <div id="blocosContainer"></div>
+    <button id="btnSalvarQuestao" class="btn-save">Salvar Questão</button>
+    <div id="listaQuestoes"></div>
+  </div>
+
+<button class="btn-float bg-green-400 hover:bg-green-600" id="btnBancoQuestoes" style="min-width:250px; bottom: 220px;">
+  Banco de Questões
+</button>
+
+<button class="btn-float bg-blue-400 hover:bg-blue-500" id="btnEdicao" style="min-width:250px; bottom: 155px;">
+  Edição
+</button>
+
+<button class="btn-float bg-gray-400 hover:bg-gray-500" id="btnNovaProva" style="min-width:250px; bottom: 90px;">
+  Nova Prova 
+</button>
+
+<button class="btn-float" id="btnGerarProva" style="min-width:250px; bottom: 26px;">
+  Gerar Prova (PDF)
+</button>
+
+<!-- Painel de Símbolos Matemáticos -->
+<div id="painel-simbolos-math" style="
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  z-index: 9999;
+  max-width: 320px;
+  max-height: 260px;
+  overflow-y: auto;
+  display: none;
+">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+    <strong style="font-size: 1rem;">Símbolos Matemáticos</strong>
+    <button onclick="fecharPainelSimbolos()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">&times;</button>
+  </div>
+  <div id="simbolos-lista" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+</div>
+
+<!-- Modal personalizada para inserir imagem -->
+<div id="modalInserirImagem" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
+
+  <div style="background:white; padding:20px; border-radius:8px; min-width:320px; text-align:center;">
+    
+    <h3 style="margin-bottom:16px;">Inserir imagem</h3>
+
+    <div style="display:flex; justify-content:center; gap:10px; margin-bottom:12px;">
+      <button onclick="escolherUpload()" style="padding:10px 20px; font-size:1em; border:none; background:#f0f0f0; border-radius:6px; cursor:pointer;">
+        📷 Fazer upload
+      </button>
+      <button onclick="inserirImagemPorUrl()" style="padding:10px 20px; font-size:1em; border:none; background:#f0f0f0; border-radius:6px; cursor:pointer;">
+        🌐 Inserir por URL
+      </button>
+      
+    </div>
+
+    <div style="margin-bottom:16px;">
+       <input id="input-url-imagem" type="text" placeholder="Cole a URL aqui..."
+        style="width:80%; padding:8px; border-radius:6px; border:1px solid #ccc; text-align:center;">
+    </div>
+
+    <div>
+      <button onclick="fecharModalImagem()" style="background:none; border:none; color:#666; font-size:0.95em; cursor:pointer;">
+        Cancelar
+      </button>
+    </div>
+    
+  </div>
+</div>
+  <script>
+
+
+function fecharModalImagem() {
+  document.getElementById('modalInserirImagem').style.display = 'none';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') fecharModalImagem();
+});
+
+
+// Corrigido: registra corretamente o módulo imageResize
+  if (window.Quill && window.ImageResize && window.ImageResize.default) {
+    Quill.register('modules/imageResize', window.ImageResize?.default || window.ImageResize);
+  }
+document.getElementById("btnConfirmarPreview").onclick = async function () {
+  const paginasPreview = document.querySelectorAll("#previewPaginasArea .pagina-a4");
+  if (!paginasPreview.length) {
+    alert("Nenhuma página no preview!");
+    return;
+  }
+
+  window.gerandoPdf = true;
+  this.disabled = true;
+  this.innerText = "Gerando PDF...";
+
+  const pdf = new jspdf.jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  for (let i = 0; i < paginasPreview.length; i++) {
+    const pagina = paginasPreview[i];
+
+    // Aguarda todas as imagens carregarem
+    await waitAllImagesLoaded(pagina);
+
+    // Aguarda renderização completa (ex: MathJax, estilizações finais)
+    await new Promise(resolve => setTimeout(resolve, 120));
+
+    const canvas = await html2canvas(pagina, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#fff"
+    });
+
+    const imgData = canvas.toDataURL("image/jpeg", 1.0);
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    if (i > 0) pdf.addPage();
+    pdf.addImage(imgData, "JPEG", 0, 0, pageWidth, pageHeight);
+  }
+
+  window.gerandoPdf = false;
+  this.disabled = false;
+  this.innerText = "Gerar PDF Final";
+  document.getElementById("previewProvaContainer").style.display = "none";
+  document.body.style.overflow = "";
+
+  pdf.save("prova_QIProvas.pdf");
+  alert("PDF gerado com sucesso!");
+};
+
+// Bolha cabeçalho / questões
+function svgBolhaLetra(letra, classeExtra = '', deslocamento = 0) {
+  return `<svg width="21" height="21" class="${classeExtra}" style="transform: translateY(${deslocamento}px);">
+    <circle cx="10.5" cy="10.5" r="9.5" fill="#fff" stroke="#222" stroke-width="1.6"/>
+    <text x="50%" y="58%" text-anchor="middle" dominant-baseline="middle" font-size="8.5" font-family="Arial" font-weight="bold" fill="#222">${letra}</text>
+  </svg>`;
+}
+
+
+
+// Função utilitária para gerar um ID único (timestamp + aleatório)
+function gerarIdUnico() {
+  // Exemplo: "20250531-175314-854321"
+  const agora = new Date();
+  const pad = n => n.toString().padStart(2, '0');
+  return (
+    agora.getFullYear().toString() +
+    pad(agora.getMonth()+1) +
+    pad(agora.getDate()) + '-' +
+    pad(agora.getHours()) +
+    pad(agora.getMinutes()) +
+    pad(agora.getSeconds()) + '-' +
+    Math.floor(Math.random() * 1000000)
+  );
+}
+
+    function embaralhar(arr) {
+      let a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+    function waitAllImagesLoaded(element) {
+      const imgs = element.querySelectorAll("img");
+      return Promise.all(Array.from(imgs).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(resolve => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+    }
+
+    async function urlToDataURL(url) {
+      try {
+        const resp = await fetch('http://localhost:3001/api/convert-image', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ url })
+        });
+        if (!resp.ok) throw new Error("Erro backend");
+        const data = await resp.json();
+        return data.base64;
+      } catch (e) {
+        alert("Erro ao baixar/converter imagem pelo servidor. Tente outro link ou faça upload.");
+        return "";
+      }
+    }
+    const logoArea = document.getElementById('logoPreview');
+    const logoInput = document.getElementById('logoUpload');
+    function setLogoDefault() {
+      logoArea.innerHTML = `<span class="text-gray-400">Insira o logo da escola</span>`;
+    }
+    setLogoDefault();
+    logoArea.onclick = () => logoInput.click();
+    let logoBase64 = null;
+    logoInput.addEventListener("change", function() {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        logoArea.innerHTML =
+          `<img src="${e.target.result}"  style="height:100%; width:100%; object-fit:contain; border-radius:14px;"  alt="Logo da Escola"/>`;
+        logoBase64 = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    let blocos = [];
+    let questoesSalvas = [];
+
+    // Carrega as questões selecionadas do localStorage ao abrir a página
+    if (localStorage.getItem("questoesSelecionadas")) {
+      try {
+        questoesSalvas = JSON.parse(localStorage.getItem("questoesSelecionadas"));
+      } catch (e) {
+        questoesSalvas = [];
+      }
+    }
+    
+
+// Função para inicializar o Quill em qualquer tipo de bloco
+const inicializarQuill = (editorDiv, bloco, tipo, idx) => {
+  const quill = new Quill(editorDiv, {
+    theme: 'snow',
+    modules: {
+      toolbar: {
+        container: [
+          ['bold', 'italic', 'underline', 'formula'],
+          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+          ['image', 'symbolsMath']
+        ],
+        handlers: {
+          image: function () {
+            const quill = this.quill;
+            if (!window.acaoImagemPorCliqueManual) return;
+            const range = quill.getSelection();
+            if (!range) return;
+            window.editorAtivoImagem = { quill, range };
+            document.getElementById('modalInserirImagem').style.display = 'flex';
+            window.acaoImagemPorCliqueManual = false;
+          },
+          symbolsMath: function () {
+            abrirPainelSimbolos();
+            window.ultimoEditorQuillAtivo = this.quill;
+          }
+        }
+      },
+      imageResize: {
+        modules: ['Resize', 'DisplaySize', 'Toolbar']
+      }
+    }
+  });
+
+  setTimeout(() => {
+    const botoesImagem = editorDiv.parentNode.querySelectorAll('.ql-image');
+    botoesImagem.forEach(botao => {
+      botao.addEventListener('mousedown', () => {
+        window.acaoImagemPorCliqueManual = true;
+      });
+    });
+  }, 100);
+
+  const range = quill.getSelection();
+  if (tipo === 'imagem' && bloco.url) {
+    quill.insertEmbed(range ? range.index : 0, 'image', bloco.url, 'user');
+  } else if (tipo === 'formula' && bloco.conteudo) {
+    quill.insertEmbed(range ? range.index : 0, 'formula', bloco.conteudo, 'user');
+  } else if (bloco.conteudo) {
+    quill.root.innerHTML = bloco.conteudo;
+  }
+
+  quill.on('text-change', function () {
+    if (tipo === 'imagem') {
+      const img = quill.root.querySelector("img");
+      bloco.url = img ? img.src : '';
+    } else {
+      bloco.conteudo = quill.root.innerHTML;
+    }
+  });
+quill.clipboard.addMatcher(Node.ELEMENT_NODE, function (node, delta) {
+  delta.ops.forEach(op => {
+    if (op.attributes && op.attributes.background) {
+      delete op.attributes.background;
+    }
+  });
+  return delta;
+});
+
+
+const toolbar = quill.getModule('toolbar');
+const btnSymbols = toolbar.container.querySelector('.ql-symbolsMath');
+if (btnSymbols) {
+  btnSymbols.innerHTML = 'Σ';
+  btnSymbols.addEventListener('click', () => {
+    abrirPainelSimbolos();
+    window.ultimoEditorQuillAtivo = quill;
+  });
+}
+
+};
+
+// Função principal que renderiza os blocos
+async function renderBlocos() {
+  window.acaoImagemPorCliqueManual = false;
+  const container = document.getElementById('blocosContainer');
+  container.innerHTML = '';
+
+  for (let idx = 0; idx < blocos.length; idx++) {
+    const bloco = blocos[idx];
+
+    if (bloco.tipo === "enunciado" || bloco.tipo === "texto" || bloco.tipo === "imagem" || bloco.tipo === "formula") {
+      container.innerHTML += `
+        <div style="margin-bottom:8px;">
+          <div id="editor-bloco-${idx}" class="quill-editor-custom" style="min-height:200px;"></div>
+          <div class="bloco-actions" style="display:flex; gap:2px; justify-content:flex-end;">
+            <button onclick="moverBlocoCima(${idx})" title="Mover para cima" style="background:none;border:none;font-size:1.2em;color:#555;cursor:pointer;">&#8679;</button>
+            <button onclick="moverBlocoBaixo(${idx})" title="Mover para baixo" style="background:none;border:none;font-size:1.2em;color:#555;cursor:pointer;">&#8681;</button>
+            <button class="btn-bloco" onclick="removerBloco(${idx})" title="Remover" style="margin-left:3px;">&times;</button>
+          </div>
+        </div>
+      `;
+      const editorDiv = document.getElementById(`editor-bloco-${idx}`);
+      inicializarQuill(editorDiv, bloco, bloco.tipo, idx);
+    }
+
+    else if (bloco.tipo === "alternativas") {
+      container.innerHTML += `
+        <div style="margin-bottom:10px;">
+          <div id="alternativas-bloco-${idx}"></div>
+          <div style="margin-top:10px; text-align:right;">
+            <button onclick="adicionarAlternativa(${idx})" style="font-size:0.9em;">+ Adicionar alternativa</button>
+          </div>
+        </div>
+      `;
+
+      const alternativasContainer = document.getElementById(`alternativas-bloco-${idx}`);
+      bloco.alternativas.forEach((alt, aidx) => {
+        const letra = String.fromCharCode(65 + aidx);
+
+        alternativasContainer.innerHTML += `
+          <div style="margin-bottom:10px;">
+            <label style="display:flex; align-items:center; gap:6px; margin-bottom:3px;">
+              <input type="radio" name="alternativa-correta-${idx}" value="${aidx}" ${bloco.correta === aidx ? "checked" : ""} onchange="definirAlternativaCorreta(${idx}, ${aidx})">
+              <strong>${letra})</strong>
+            </label>
+            <div id="editor-alt-${idx}-${aidx}" class="quill-editor-alternativa" style="border:1px solid #ccc; border-radius:6px;"></div>
+            <div style="margin-top:4px; text-align:right;">
+              <button onclick="removerAlternativa(${idx}, ${aidx})" style="font-size:0.8em; color:#a00;">x</button>
+            </div>
+          </div>
+        `;
+setTimeout(() => {
+  const Delta = Quill.import('delta');
+  const editorDiv = document.getElementById(`editor-alt-${idx}-${aidx}`);
+  const quill = new Quill(editorDiv, {
+    theme: 'snow',
+    modules: {
+      toolbar: {
+        container: [
+          ['bold', 'italic', 'underline', 'formula'],
+          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+          ['image', 'symbolsMath']
+        ],
+        handlers: {
+          image: function () {
+            const quill = this.quill;
+            if (!window.acaoImagemPorCliqueManual) return;
+            const range = quill.getSelection();
+            if (!range) return;
+            window.editorAtivoImagem = { quill, range };
+            document.getElementById('modalInserirImagem').style.display = 'flex';
+            window.acaoImagemPorCliqueManual = false;
+          },
+          symbolsMath: function () {
+            abrirPainelSimbolos();
+            window.ultimoEditorQuillAtivo = this.quill;
+          }
+        }
+      }
+    }
+  });
+
+  
+  const toolbar = quill.getModule('toolbar');
+  const btnSymbols = toolbar.container.querySelector('.ql-symbolsMath');
+  if (btnSymbols) {
+    btnSymbols.innerHTML = 'Σ';
+    btnSymbols.addEventListener('click', () => {
+      abrirPainelSimbolos();
+      window.ultimoEditorQuillAtivo = quill;
+    });
+  }
+          setTimeout(() => {
+            const botoesImagem = editorDiv.parentNode.querySelectorAll('.ql-image');
+            botoesImagem.forEach(botao => {
+              botao.addEventListener('mousedown', () => {
+                window.acaoImagemPorCliqueManual = true;
+              });
+            });
+          }, 100);
+
+          quill.clipboard.addMatcher(Node.ELEMENT_NODE, function (node, delta) {
+            if (node.tagName === 'OL' || node.tagName === 'LI') {
+              return new Delta().insert(node.innerText + '\n');
+            }
+            if (delta.ops?.length > 0 && typeof delta.ops[0].insert === 'string') {
+              delta.ops[0].insert = delta.ops[0].insert.replace(/^\s*(\d+[\.\)]|[a-zA-Z][\.\)]|[IVXLCDM]+\s*[-–])\s+/, '');
+            }
+            return delta;
+          });
+
+          const editorArea = editorDiv.querySelector('.ql-editor');
+          editorArea.style.minHeight = '32px';
+          editorArea.style.overflowY = 'visible';
+          editorArea.style.whiteSpace = 'normal';
+          editorArea.style.padding = '4px 6px';
+
+          if (alt) quill.root.innerHTML = alt;
+
+          quill.on('text-change', () => {
+            bloco.alternativas[aidx] = quill.root.innerHTML;
+          });
+        });
+      });
+    }
+
+    else if (bloco.tipo === "fonte") {
+      container.innerHTML += `
+        <div style="margin-bottom:10px;">
+          <label style="font-weight:bold;">Fonte:</label>
+          <input type="text" id="input-fonte-${idx}" value="${bloco.conteudo || ''}" style="width:100%; padding:6px; font-size:0.95em; border:0.5px solid #ccc; border-radius:6px;">
+        </div>
+      `;
+      setTimeout(() => {
+        const input = document.getElementById(`input-fonte-${idx}`);
+        input.addEventListener('input', () => {
+          bloco.conteudo = input.value;
+        });
+      });
+    }
+
+    else if (bloco.tipo === "dissertativa" || bloco.tipo === "calculo") {
+      const linhas = bloco.linhas || 5;
+      const instrucoes = bloco.tipo === "dissertativa" && bloco.instrucoes
+        ? `<div style="font-size:13px;color:#555;margin-bottom:4px;">${bloco.instrucoes}</div>`
+        : (bloco.tipo === "calculo" ? `<div style="font-size:13px;color:#555;margin-bottom:4px;">Campo para Cálculo:</div>` : '');
+
+      const conteudoHtml = bloco.tipo === "dissertativa"
+        ? Array.from({ length: linhas }, () => `<div style="border-bottom:1px solid #bbb; height:19px; margin-bottom:3px;"></div>`).join('')
+        : `<div style="height: ${linhas * 22}px;"></div>`;
+
+      container.innerHTML += `
+        <div style="margin-bottom:10px;">
+          ${instrucoes}
+          <div style="border:1px dashed #bbb; border-radius:7px; padding:7px 13px; background:#f8fafc;">
+            ${conteudoHtml}
+          </div>
+          <div style="margin-top:4px; display:flex; align-items:center; justify-content:space-between;">
+            <label style="font-size:0.9em; color:#444;">
+              Nº de linhas: 
+              <input type="number" min="1" value="${linhas}" style="width:60px; padding:3px; margin-left:4px; border:1px solid #ccc; border-radius:4px;"
+                onchange="blocos[${idx}].linhas = parseInt(this.value || 5); atualizarPreview()" />
+            </label>
+            <div class="bloco-actions" style="display:flex; gap:2px;">
+              <button onclick="moverBlocoCima(${idx})" title="Mover para cima" style="background:none;border:none;font-size:1.2em;color:#555;cursor:pointer;">&#8679;</button>
+              <button onclick="moverBlocoBaixo(${idx})" title="Mover para baixo" style="background:none;border:none;font-size:1.2em;color:#555;cursor:pointer;">&#8681;</button>
+              <button class="btn-bloco" onclick="removerBloco(${idx})" title="Remover" style="margin-left:3px;">&times;</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  }
+}
+
+// Símbolos matemáticos 
+
+const simbolosMath = [
+
+  "√", "∛", "π", "∞", "≈", "≠", "≤", "≥", "≡", "∑", "∏", "∫", "∂",
+  "∇", "∈", "∉", "∩", "∪", "⊂", "⊃", "⊆", "⊇", "∅",
+  "α", "β", "γ", "Δ", "δ", "ε", "θ", "λ", "μ", "ρ", "σ", "φ", "Ω",
+  "∠", "°", "′", "″",
+  "∗", "⋅", "×", "÷", "±", "∓", "≅", "≃", "∝", "∴", "∵",
+  "x/y","log", "ln", "exp", "det", "lim", "sin", "cos", "tan",
+  "∃", "∀", "⇒", "⇔",
+  "₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉",
+  "⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"
+];
+
+function abrirPainelSimbolos() {
+  renderSimbolosMath();
+  document.getElementById('painel-simbolos-math').style.display = 'block';
+}
+
+
+function fecharPainelSimbolos() {
+  document.getElementById('painel-simbolos-math').style.display = 'none';
+}
+function renderSimbolosMath() {
+  const lista = document.getElementById('simbolos-lista');
+  lista.innerHTML = '';
+  simbolosMath.forEach(simbolo => {
+  const btn = document.createElement('button');
+  btn.textContent = simbolo;
+  btn.style = `
+    padding: 6px 10px;
+    font-size: 1.2rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background: #f8f9fa;
+    cursor: pointer;
+  `;
+  // Se for "x/y", insere a string especial do LaTeX
+  if (simbolo === "x/y") {
+  btn.title = "Inserir fração";
+  btn.onclick = () => inserirSimboloNoEditor("\\(\\frac{□}{□}\\)");
+} else {
+    btn.onclick = () => inserirSimboloNoEditor(simbolo);
+  }
+  lista.appendChild(btn);
+});
+}
+function inserirSimboloNoEditor(simbolo) {
+  if (window.ultimoEditorQuillAtivo) {
+    const quill = window.ultimoEditorQuillAtivo;
+    const range = quill.getSelection(true);
+    if (range) {
+      quill.insertText(range.index, simbolo, 'user');
+      quill.setSelection(range.index + simbolo.length, 0, 'user');
+    }
+    fecharPainelSimbolos();
+  }
+}
+
+    window.removerBloco = function(idx) {
+      blocos.splice(idx, 1);
+      renderBlocos();
+    };
+
+   window.adicionarAlternativa = function (idx) {
+  if (!blocos[idx].alternativas) blocos[idx].alternativas = [];
+  if (blocos[idx].alternativas.length < 8) {
+    blocos[idx].alternativas.push("");
+    renderBlocos();
+  }
+};
+
+window.removerAlternativa = function (idx, aidx) {
+  blocos[idx].alternativas.splice(aidx, 1);
+  if (blocos[idx].correta >= blocos[idx].alternativas.length) {
+    blocos[idx].correta = 0; // reseta correta se saiu do limite
+  }
+  renderBlocos();
+};
+
+window.definirAlternativaCorreta = function (idx, aidx) {
+  blocos[idx].correta = aidx;
+};
+
+  window.converterImgBase64 = async function(input, idx) {
+  const url = input.value.trim();
+  
+  // Verifica se o campo contém uma URL válida
+  if (url.length && !url.startsWith("data:")) {
+    // Desabilita o campo e mostra a mensagem de carregamento
+    input.disabled = true;
+    input.value = "Convertendo para base64...";
+    
+    try {
+      // Converte a URL para base64
+      const dataUrl = await urlToDataURL(url);
+      
+      if (dataUrl) {
+        // Atualiza a URL do bloco com a imagem convertida
+        blocos[idx].url = dataUrl;
+        
+        // Renderiza os blocos após a conversão
+        await renderBlocos();
+      }
+    } catch (error) {
+      console.error("Erro ao converter imagem para base64:", error);
+    }
+    
+    // Reabilita o input
+    input.disabled = false;
+  }
+};
+
+const btnAdd = document.getElementById('btnAdd');
+const dropdownMenu = document.getElementById('dropdownMenu');
+
+btnAdd.onclick = function(e) {
+  e.stopPropagation();
+  dropdownMenu.style.display = (dropdownMenu.style.display === "block") ? "none" : "block";
+};
+
+document.body.onclick = () => dropdownMenu.style.display = "none";
+dropdownMenu.onclick = (e) => e.stopPropagation();
+
+// Função para adicionar um bloco de um tipo específico
+window.adicionarBloco = function(tipo) {
+  dropdownMenu.style.display = "none"; // Fecha o menu ao adicionar o bloco
+
+  let novoBloco;
+
+  // Criação de blocos com base no tipo
+  switch (tipo) {
+    case "enunciado":
+    case "texto":
+      novoBloco = { tipo: tipo, conteudo: "", referencia: "" };
+      break;
+
+    case "alternativas":
+      novoBloco = { tipo: "alternativas", alternativas: ["", ""], correta: 0 };
+      break;
+
+    case "dissertativa":
+      novoBloco = { tipo: "dissertativa", linhas: 5, instrucoes: "" };
+      break;
+
+    case "calculo":
+      novoBloco = { tipo: "calculo", linhas: 5 }; // 5 linhas por padrão
+      break;
+
+    case "fonte":
+      if (!blocos.some(b => b.tipo === "fonte")) {
+        novoBloco = { tipo: "fonte", fonte: "" };
+      } else {
+        alert("Só é permitido um bloco de fonte por questão.");
+        return;
+      }
+      break;
+
+    default:
+      return; // Caso o tipo não seja reconhecido
+  }
+
+  // Adiciona o bloco ao array `blocos`
+  if (novoBloco) {
+    blocos.push(novoBloco);
+    renderBlocos(); // Renderiza os blocos após adicionar
+  }
+};
+
+// Função para converter imagens <img src="..."> em base64 dentro de um HTML (Quill/enunciado)
+async function converterImgsHtmlParaBase64(html) {
+  const imgRegex = /<img[^>]+src="([^"]+)"/gi;
+  let result;
+  let imagens = [];
+  // Coleta todas as URLs de imagens que não são base64
+  while ((result = imgRegex.exec(html)) !== null) {
+    const src = result[1];
+    if (!src.startsWith("data:image/") && !imagens.includes(src)) {
+      imagens.push(src);
+    }
+  }
+  // Para cada imagem, converte para base64 e substitui no HTML
+  for (const src of imagens) {
+    try {
+      const base64 = await urlToDataURL(src);
+      if (base64) {
+        // Substitui TODAS as ocorrências daquele src pela base64 no HTML
+        html = html.replace(new RegExp(src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g"), base64);
+      }
+    } catch (e) {
+      console.warn("Falha ao converter imagem no HTML:", src, e);
+    }
+  }
+  return html;
+}
+
+async function converterAlternativasBlocosParaBase64(questoes) {
+  for (const questao of questoes) {
+    if (Array.isArray(questao.blocos)) {
+      for (const bloco of questao.blocos) {
+        if (bloco.tipo === "alternativas" && Array.isArray(bloco.alternativas)) {
+          for (let i = 0; i < bloco.alternativas.length; i++) {
+            bloco.alternativas[i] = await converterImgsHtmlParaBase64(bloco.alternativas[i]);
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+async function renderQuestoesSalvas() {
+  const container = document.getElementById('listaQuestoes');
+  container.innerHTML = '';
+
+  for (const [qidx, questao] of questoesSalvas.entries()) {
+    let enunciado = "";
+    let alternativas = [];
+    let correta = 0;
+    let fonteQuestao = "";
+
+    if (Array.isArray(questao.blocos)) {
+      const blocoFonte = questao.blocos.find(b => b.tipo === "fonte" && (b.fonte || b.conteudo));
+      fonteQuestao = blocoFonte ? (blocoFonte.fonte || blocoFonte.conteudo || "") : "";
+
+      for (const bloco of questao.blocos) {
+        if (bloco.tipo === "fonte") continue;
+// ENUNCIADO/TEXTO — agora converte imagens internas!
+if (bloco.tipo === "enunciado" || bloco.tipo === "texto") {
+  let conteudo = (bloco.conteudo || "").replace(/justify;">/g, "").trim();
+  conteudo = await converterImgsHtmlParaBase64(conteudo);
+  // Remove <p><br></p> e parágrafos vazios
+conteudo = conteudo.replace(/<p><br><\/p>/gi, "");
+conteudo = conteudo.replace(/<p>\s*<\/p>/gi, "");
+enunciado += `<div style="margin-bottom:6px;">${conteudo}</div>`;
+
+  if (bloco.referencia) {
+    enunciado += `<div style="margin-bottom:4px;">Ref: ${bloco.referencia}</div>`;
+  }
+}
+
+// ALTERNATIVAS — converte imagens para base64 aqui na hora!
+if (bloco.tipo === "alternativas" && bloco.alternativas) {
+  alternativas = await Promise.all(
+    bloco.alternativas.map(async altHtml => await converterImgsHtmlParaBase64(altHtml))
+  );
+  alternativas = alternativas.map(alt =>
+  alt.replace(/<p><br><\/p>/gi, "").replace(/<p>\s*<\/p>/gi, "")
+);
+  correta = bloco.correta;
+}
+
+
+        // Renderiza bloco dissertativo ou de cálculo
+        if (bloco.tipo === "dissertativa" || bloco.tipo === "calculo") {
+          let linhas = bloco.linhas || 5;
+          let instrucoes = "";
+
+          if (bloco.tipo === "dissertativa" && bloco.instrucoes) {
+            instrucoes = `<div style="font-size:12px;color:#555;margin-bottom:4px;">${bloco.instrucoes}</div>`;
+          }
+
+          let conteudoHtml = "";
+
+          if (bloco.tipo === "dissertativa") {
+            for (let i = 0; i < linhas; i++) {
+              conteudoHtml += `<div style="border-bottom:1px solid #bbb; height:19px; margin-bottom:3px;"></div>`;
+            }
+          } else {
+            // Bloco de cálculo: apenas espaço em branco
+            conteudoHtml = `<div style="height: ${linhas * 22}px;"></div>`;
+          }
+
+          enunciado += `
+            <div style="margin:13px 0 15px 0;">
+              ${instrucoes || (bloco.tipo === "calculo" ? '<div style="font-size:12px;color:#555;margin-bottom:4px;">Campo para Cálculo:</div>' : '')}
+              <div style="border:1px dashed #bbb; border-radius:7px; padding:7px 13px; background:#f8fafc;">
+                ${conteudoHtml}
+              </div>
+            </div>
+          `;
+        }
+      }
+    } else {
+      enunciado = questao.enunciado || "";
+      alternativas = questao.alternativas || [];
+      correta = questao.correta || 0;
+      fonteQuestao = questao.fonte || "";
+    }
+
+    // Tratamento para alternativas
+    let alternativasFormatadas = [];
+    let indiceCorreta = -1;
+
+    if (Array.isArray(alternativas) && alternativas.length > 0) {
+      alternativasFormatadas = alternativas;
+      indiceCorreta = correta; // índice correto vindo do bloco
+    }
+
+    // HTML da questão renderizada
+    let htmlQuestao = `<div class="questao-bloco-prova">`;
+    htmlQuestao += `<div style="display:flex;align-items:center;margin-bottom:2px;">
+      <button class="btn-remover-questao" onclick="removerQuestao(${qidx})" title="Remover questão">&times;</button>
+      <span class="numero-questao">${"Q." + (qidx + 1)}</span>
+      ${fonteQuestao ? `<span class="fonte-fonte">(${fonteQuestao})</span>` : ""}
+    </div>`;
+
+    htmlQuestao += `<div class="enunciado-bloco">`;
+    if (enunciado) htmlQuestao += enunciado;
+
+    // Retira espaços e quebras desnecessárias nas alternativas
+const alternativasLimpas = alternativasFormatadas.map(alt =>
+  alt
+    .replace(/<p><br><\/p>/gi, "")
+    .replace(/<p>\s*<\/p>/gi, "")
+    .replace(/(&nbsp;)+/gi, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+);
+
+// Renderiza alternativas
+if (alternativasLimpas.length > 0) {
+  htmlQuestao += `<div class="bloco-alternativas" style="margin-top:2px;">` +
+    alternativasLimpas.map((alt, aid) => `
+      <div class="alternativa-item ${aid === indiceCorreta ? "alt-correta" : ""}">
+        <span class="alternativa-letra">${svgBolhaLetra(String.fromCharCode(65 + aid), 'alternativa-letra')}</span>
+        <span style="display:inline-block; width:100%;">${alt}</span>
+      </div>
+    `).join("") +
+    `</div>`;
+}
+
+    htmlQuestao += `</div>`;
+    container.innerHTML += htmlQuestao;
+  }
+
+  if (window.MathJax && typeof MathJax.typesetPromise === "function") {
+    MathJax.typesetPromise();
+  }
+}
+
+window.removerQuestao = function(qidx) {
+      questoesSalvas.splice(qidx, 1);
+      localStorage.setItem("questoesSelecionadas", JSON.stringify(questoesSalvas));
+      renderQuestoesSalvas();
+      atualizarGabarito();
+    };
+
+function atualizarGabarito() {
+  const containerNumeros = document.getElementById('gabaritoNumeros');
+  const containerBolhas = document.getElementById('gabaritoBolhas');
+  let maxAlternativas = 0;
+
+  for (let q of questoesSalvas) {
+    const alt = q.blocos.find(b => b.tipo === "alternativas");
+
+    if (alt && alt.alternativas && alt.alternativas.length > maxAlternativas) {
+      maxAlternativas = alt.alternativas.length;
+    }
+  }
+
+  let letrasAlts = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].slice(0, maxAlternativas);
+  let html = '<table style="border-collapse: separate; border-spacing: 7px 3px;"><thead><tr>';
+  
+  // Adiciona números das questões
+  for (let i = 0; i < questoesSalvas.length; i++) {
+    html += `<th style="text-align:center; font-weight:bold; font-size:1.08rem; padding:0;">${i + 1}</th>`;
+  }
+
+  html += '</tr></thead><tbody>';
+
+  // Adiciona bolhas para alternativas
+  for (let a = 0; a < maxAlternativas; a++) {
+    html += '<tr>';
+    for (let q = 0; q < questoesSalvas.length; q++) {
+      const alt = questoesSalvas[q].blocos.find(b => b.tipo === "alternativas");
+      if (alt && alt.alternativas.length > a) {
+        html += `<td style="text-align:center; padding:0;">
+          <span>${svgBolhaLetra(letrasAlts[a], 'gabarito-bolha')}</span>
+        </td>`;
+      } else {
+        html += `<td></td>`;
+      }
+    }
+    html += '</tr>';
+  }
+
+  html += '</tbody></table>';
+  containerNumeros.innerHTML = html;
+
+  containerBolhas.innerHTML = "";
+
+  // Gerar QR Code de exemplo
+  if (window.qrcode) {
+    let q = qrcode(0, 'L');
+    q.addData('QIProvas-EXEMPLO');
+    q.make();
+    document.getElementById('qrCodeProvaExemplo').innerHTML = q.createImgTag(4,8);
+  }
+}
+
+renderBlocos();
+renderQuestoesSalvas();
+atualizarGabarito();
+
+    // converter mm em pixels real
+
+   function getPxFromMm(mm) {
+  const tmp = document.createElement("div");
+  tmp.style.width = mm + "mm";
+  document.body.appendChild(tmp);
+  const px = tmp.offsetWidth;
+  document.body.removeChild(tmp);
+  return px;
+}
+
+async function urlToBase64(url) {
+  try {
+    const response = await fetch('http://localhost:3001/api/convert-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    if (!response.ok) throw new Error("Erro ao buscar imagem do servidor");
+    const data = await response.json();
+    return data.base64;
+  } catch (e) {
+    console.warn("Erro ao converter para base64:", e);
+    return "";
+  }
+}
+
+function splitTextoEmFrasesSmart(texto, numLinhas) {
+  if (numLinhas <= 3) return [texto];
+
+  // Lista ampliada de abreviações e iniciais comuns
+  const abreviacoes = [
+    'A.', 'p.', 'vol.', 'ed.', 'org.', 'Eds.', 'No.', 'nº', 'v.', 'S.', 'Sr.', 'Sra.', 'Inc.', 'Ltd.', 'Dr.', 'Dra.', 'Prof.', 'Ms.', 'M.', 'Coords.'
+  ];
+
+  // Passo 1: Juntar número + ponto do início da frase (ex: "1. Algo..." não quebra)
+  texto = texto.replace(/(\d\.)\s+(?=[A-ZÀ-Ú])/g, "$1 ");
+
+  // Passo 2: Split inteligente, mas NÃO quebra após abreviação ou inicial (ex: "W. L. P.")
+  let regex = /(?<=\.)\s+(?=[A-ZÀ-Ú])/g;
+  let partes = texto.split(regex);
+
+  let resultado = [];
+  let buffer = '';
+
+  for (let i = 0; i < partes.length; i++) {
+    let parte = partes[i].trim();
+
+    // Testa se termina com abreviação OU é uma sequência de iniciais (tipo "W. L. P.")
+    const terminaComAbreviacao = abreviacoes.some(abv => parte.endsWith(abv));
+    const terminaComIniciais = /([A-Z]\.){1,5}$/.test(parte.replace(/\s+/g, '')); // ex: "W.L.P."
+
+    if (terminaComAbreviacao || terminaComIniciais) {
+      buffer += (buffer ? ' ' : '') + parte;
+      continue;
+    }
+
+    if (buffer) {
+      resultado.push(buffer + ' ' + parte);
+      buffer = '';
+    } else {
+      resultado.push(parte);
+    }
+  }
+  if (buffer) resultado.push(buffer);
+
+  // Também divide por <br> ou \n, removendo espaços extras
+  return resultado.flatMap(f =>
+    f.split(/<br\s*\/?>|\n/gi)
+     .map(s => s.trim())
+     .filter(Boolean)
+  );
+}
+
+  // Função montarPaginasA4Questoes: monta páginas A4 em colunas duplas e INSERE O CABEÇALHO na primeira página!  
+async function montarPaginasA4Questoes(questoesFinal, logoBase64, qrBase64, idUnico) {
+  // --- PADRÃO DO CSS ---
+  const PADDING_LATERAL = 50;   // Igual ao .pagina-a4
+  const PADDING_SUPERIOR = 40;  // Igual ao .pagina-a4
+  const PADDING_INFERIOR = 0;  // Igual ao .pagina-a4
+
+  // Convertemos mm para px e removemos o padding dos dois lados
+  const A4_W_TOTAL = getPxFromMm(210);  // 793px normalmente
+  const A4_H_TOTAL = getPxFromMm(297);  // 1122px normalmente
+
+  const A4_W = A4_W_TOTAL - (PADDING_LATERAL * 2); // largura útil (sem padding)
+  const A4_H = A4_H_TOTAL - (PADDING_SUPERIOR + PADDING_INFERIOR); // altura útil (sem padding)
+
+  // Defina se quiser alguma margem adicional (mas em geral deixe 0)
+  const MARGEM_SUP = 0;
+  const MARGEM_INF = 0;
+  const MARGEM_LAT = 0;
+
+  const ALTURA_UTIL = A4_H - MARGEM_SUP - MARGEM_INF;
+
+  //Colunas duplas
+  const NUM_COLUNAS = 2;
+  const GAP_COLUNAS = 30;
+  const LARGURA_COLUNA = Math.floor((A4_W - GAP_COLUNAS) / NUM_COLUNAS); // Ajuste AQUI!
+  const ALTURA_COLUNA = ALTURA_UTIL;
+
+  let campoRecomendacoes = document.getElementById("campoRecomendacoes")?.value || "";
+  let campoRecomendacoesPdf = campoRecomendacoes.replace(/\n/g, "<br>");
+
+  // Cabeçalho COMPLETO
+  let headerHtml = `
+    <div style="width: 100%; height: 110px; display: flex; align-items: center; justify-content: center; background: #fff; border-radius: 16px 16px 16px 16px; margin-bottom: 12px; border: 1px solid #111; overflow: hidden;">
+
+      ${
+        logoBase64
+  ? `<img src="${logoBase64}" 
+      style="height: 100px; width: auto; max-width: 97%; object-fit: contain; display: block; margin: 0 auto; border-radius: 12px; box-shadow: 0 0 2px #aaa;" 
+      onload="if(this.naturalWidth > this.naturalHeight) { this.style.width='auto'; this.style.height='100px'; } else { this.style.width='90%'; this.style.height='auto'; }"
+/>`
+  : ``
+      }
+    </div>
+
+    <div style="position: relative; border-radius: 14px; border: 1.3px solid #111; padding: 8px 8px; display: flex; align-items: center; gap: 26px; width: 100%; box-sizing: border-box; justify-content: space-between; margin-bottom: 12px; background: #fff;height: 160px;">
+      <div style="display: flex; flex-direction: column-reverse; align-items: center; justify-content: center; height: 100%; font-weight: bold; font-size: 0.96rem; color: #134e4a; letter-spacing: 0px; margin-left: 0px; user-select: none;">
+       <span style="transform: rotate(-90deg); display:inline-block; margin-bottom: -4px;">G</span>
+<span style="transform: rotate(-90deg); display:inline-block; margin-bottom: -4px;">A</span>
+<span style="transform: rotate(-90deg); display:inline-block; margin-bottom: -4px;">B</span>
+<span style="transform: rotate(-90deg); display:inline-block; margin-bottom: -4px;">A</span>
+<span style="transform: rotate(-90deg); display:inline-block; margin-bottom: -4px;">R</span>
+<span style="transform: rotate(-90deg); display:inline-block; margin-bottom: -4px;">I</span>
+<span style="transform: rotate(-90deg); display:inline-block; margin-bottom: -4px;">T</span>
+<span style="transform: rotate(-90deg); display:inline-block; margin-bottom: -4px;">O</span>
+
+      </div>
+      ${(() => {
+        const NUM_COLS = questoesFinal.length;
+        const CELL_W = 29.5;
+        const TABELA_OFFSET_LEFT = 48;
+        const TABELA_OFFSET_TOP = 19;
+        const TABELA_H = 135;
+        const X_LEFT = TABELA_OFFSET_LEFT - 10;
+        const X_RIGHT = TABELA_OFFSET_LEFT + (CELL_W * NUM_COLS) + 13;
+        const Y_TOP = TABELA_OFFSET_TOP - 8;
+        const Y_BOTTOM = TABELA_OFFSET_TOP + TABELA_H - 7;
+        return `
+          <!--div style="position:absolute; left:${X_LEFT}px; top:${Y_TOP}px; width:16px; height:16px; background:#111; border-radius:50%; z-index:20; pointer-events:none;"></div-->
+          <!--div style="position:absolute; left:${X_LEFT}px; top:${Y_BOTTOM}px; width:16px; height:16px; background:#111; border-radius:50%; z-index:20; pointer-events:none;"></div-->
+          <!--div style="position:absolute; left:${X_RIGHT}px; top:${Y_TOP}px; width:16px; height:16px; background:#111; border-radius:50%; z-index:20; pointer-events:none;"></div-->
+          <!--div style="position:absolute; left:${X_RIGHT}px; top:${Y_BOTTOM}px; width:16px; height:16px; background:#111; border-radius:50%; z-index:20; pointer-events:none;"></div-->
+        `;
+      })()}
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; margin-top: -12px;">
+        <table style="margin-left: 0; border-collapse: separate; border-spacing: 6px 5px; font-size: 10pt;">
+          <thead>
+            <tr>
+              ${
+                questoesFinal.map((_, idx) =>
+                  `<th style="text-align:center; font-weight:bold; font-size:1.08rem; min-width:26px; padding:0 2.5px;">${idx+1}</th>`
+                ).join("")
+              }
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              (() => {
+                let maxAlternativas = 0;
+for (let q of questoesFinal) {
+  const alt = Array.isArray(q.blocos) ? q.blocos.find(b => b.tipo === "alternativas") : null;
+  if (alt && alt.alternativas.length > maxAlternativas) {
+    maxAlternativas = alt.alternativas.length;
+  }
+}
+let letrasAlts = ['A','B','C','D','E','F','G','H'].slice(0, maxAlternativas);
+let linhas = '';
+for (let a = 0; a < maxAlternativas; a++) {
+  linhas += '<tr>';
+  for (let q = 0; q < questoesFinal.length; q++) {
+    const alt = Array.isArray(questoesFinal[q].blocos) ? questoesFinal[q].blocos.find(b => b.tipo === "alternativas") : null;
+    if (alt && alt.alternativas.length > a) {
+      linhas += `<td style="text-align:center; vertical-align:middle; padding:0 2.5px;">
+        ${svgBolhaLetra(letrasAlts[a], 'gabarito-bolha')}
+      </td>`;
+    } else {
+      linhas += `<td></td>`;
+    }
+  }
+  linhas += '</tr>';
+}
+return linhas;
+
+              })()
+            }
+          </tbody>
+        </table>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: flex-end; flex: 1; height: 100%;">
+  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <img src="${qrBase64}" width="84" height="84" style="display: block; margin-bottom: 2px;">
+   
+
+  </div>
+</div>
+    </div>
+    <div style="width: 100%; display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 11px;">
+      <div style="flex:2;">
+        <div style="border-bottom:1.2px solid #222; width:540px; height:20px; margin:0 0 0 0;"></div>
+        <div style="text-align:left; font-size:10pt; color:#444; margin-left:2px; margin-top: 2px;">Assinatura do Estudante</div>
+      </div>
+      <div style="flex:1;">
+        <div style="border-bottom:1.2px solid #222; width:130px; height:20px; margin:0 auto 0 24px;"></div>
+        <div style="text-align:left; font-size:10pt; color:#444; margin-left:26px; margin-top: 2px;">Turma</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: flex-start; gap: 13px; margin-bottom: 10px;">
+      <div style="flex: 1;">
+        <div style="border: 1px solid #d1d5db; border-radius: 7px; padding: 7px 12px 18px 12px; background: #f8fafc; font-size: 10pt; min-height: 38px; line-height: 1.25;">
+          ${campoRecomendacoesPdf || `Preencha seu nome e turma nos campos acima.<br>Leia atentamente todas as questões e resolva com calma.<br>Marque o gabarito com caneta esferiográfica azul ou preta.<br>Não rasure o gabarito.`}
+        </div>
+      </div>
+      <div style="min-width: 100px; min-height: 90px; border:1.3px solid #888; border-radius:7px; margin-left:9px; background: #fff; display:flex; align-items:center; justify-content:center; font-size:1.05rem;"></div>
+    </div>
+    <div style="font-size:12.5px;color:#333;border-bottom:1.4px solid #e5e7eb;margin:15px 0 10px 0;padding-bottom:3px;font-weight:bold;">QUESTÕES</div>
+  `;
+
+  let paginas = [];
+  let colunaHTML = "";
+  let paginaColunas = [ "", "" ];
+  let paginaAtual = 0;
+  let colunaAtual = 0;
+
+  let tempDiv = document.createElement("div");
+  tempDiv.style.position = "absolute";
+  tempDiv.style.left = "-9999px";
+  tempDiv.style.width = `${LARGURA_COLUNA}px`;
+  document.body.appendChild(tempDiv);
+
+  tempDiv.innerHTML = headerHtml;
+  const alturaHeader = tempDiv.offsetHeight -50 ; /// subtraí um pouco do cabeçalho 
+
+  let alturaUsadaColuna = 0;
+
+  // Função isolada para adicionar bloco na coluna
+  function addBlocoEmColuna(htmlBloco, qidx, questao, bidx) {
+    tempDiv.innerHTML = htmlBloco;
+    let alturaBloco = tempDiv.offsetHeight;
+
+    // Na primeira coluna e primeira página, soma altura do header
+    if (paginaAtual === 0 && alturaUsadaColuna === 0) {
+      alturaUsadaColuna += alturaHeader;
+    }
+
+    // Se o bloco é maior que a coluna toda (raro)
+    if (alturaBloco > ALTURA_COLUNA) {
+      colunaHTML += htmlBloco;
+      alturaUsadaColuna += alturaBloco;
+      return;
+    }
+
+    // Permite pequeno overflow no último bloco da coluna para minimizar buracos
+const LIMITE_OVERFLOW = 200; // px — ajuste esse valor se quiser permitir mais ou menos "estouro"
+
+if (alturaUsadaColuna + alturaBloco > ALTURA_COLUNA) {
+   console.log(
+    "Overflow?",
+    {qidx, bidx, ALTURA_COLUNA, alturaUsadaColuna, alturaBloco, excesso: alturaUsadaColuna + alturaBloco - ALTURA_COLUNA}
+  );
+ if ((alturaUsadaColuna + alturaBloco - ALTURA_COLUNA) <= LIMITE_OVERFLOW) {
+    colunaHTML += htmlBloco;
+    alturaUsadaColuna += alturaBloco;
+    // Agora encerra a coluna, pois já está passando do limite (não tente encaixar mais blocos aqui!)
+    if (colunaAtual === 0) {
+        paginaColunas[0] += colunaHTML;
+        colunaHTML = "";
+        colunaAtual = 1;
+        alturaUsadaColuna = 0;
+    } else {
+        paginaColunas[1] += colunaHTML;
+        colunaHTML = "";
+        paginas.push(
+            `<div style="display: flex; flex-direction: row; width: 100%; box-sizing: border-box; margin: 0;">
+                <div style="width:${LARGURA_COLUNA}px; margin:0; padding:0;">${paginaColunas[0]}</div>
+                <div style="width: 0.8px; background-color: #888; height: auto; margin: 0 10px;"></div>
+                <div style="width:${LARGURA_COLUNA}px; margin:0; padding:0;">${paginaColunas[1]}</div>
+            </div>`
+        );
+        paginaColunas = ["", ""];
+        colunaAtual = 0;
+        paginaAtual++;
+        alturaUsadaColuna = 0;
+    }
+    return;
+}
+
+      // Se for o último bloco da última questão, adiciona mesmo assim
+      if (
+        qidx === questoesFinal.length - 1 && // última questão
+        bidx === questao.blocos.length - 1   // último bloco da questão
+      ) {
+        colunaHTML += htmlBloco;
+        alturaUsadaColuna += alturaBloco;
+        return;
+      } else {
+        // Troca de coluna: se está na primeira, vai para a segunda
+        if (colunaAtual === 0) {
+          paginaColunas[0] += colunaHTML;
+          colunaHTML = "";
+          colunaAtual = 1;
+          alturaUsadaColuna = 0;
+          addBlocoEmColuna(htmlBloco, qidx, questao, bidx); // tenta adicionar na segunda coluna
+          return;
+        } else {
+          // Fecha a página, cria nova e reinicia coluna
+          paginaColunas[1] += colunaHTML;
+          colunaHTML = "";
+          paginas.push(
+            `<div style="display: flex; flex-direction: row; width: 100%; box-sizing: border-box; margin: 0;">
+              <div style="width:${LARGURA_COLUNA}px; margin:0; padding:0;">${paginaColunas[0]}</div>
+              <div style="width: 0.8px; background-color: #888; height: auto; margin: 0 10px;"></div>
+              <div style="width:${LARGURA_COLUNA}px; margin:0; padding:0;">${paginaColunas[1]}</div>
+            </div>`
+          );
+          paginaColunas = ["", ""];
+          colunaAtual = 0;
+          paginaAtual++;
+          alturaUsadaColuna = 0;
+          addBlocoEmColuna(htmlBloco, qidx, questao, bidx); // tenta adicionar na nova página/coluna
+          return;
+        }
+      }
+    }
+
+    // Caso padrão: adiciona normalmente
+    colunaHTML += htmlBloco;
+    alturaUsadaColuna += alturaBloco;
+  }
+
+
+  // ---- LOOP PRINCIPAL DAS QUESTÕES (fora da função acima!) ----
+  for (let qidx = 0; qidx < questoesFinal.length; qidx++) {
+    let questao = questoesFinal[qidx];
+  let fonteBloco = Array.isArray(questao.blocos) ? questao.blocos.find(b => b.tipo === "fonte") : null;
+  let fonte = fonteBloco && (fonteBloco.fonte || fonteBloco.conteudo) ? (fonteBloco.fonte || fonteBloco.conteudo) : "";
+
+  const gerandoPdf = window.gerandoPdf === true;
+  let blocoHeader = `
+  <div class="bloco-cabecalho-questao" style="
+      background-color: #888;
+      color: white;
+      font-family: sans-serif;
+      font-size: 0.94rem;
+      width: 100%;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start; /* <-- alterado aqui */
+      padding: ${gerandoPdf ? '0px 10px 10px 10px' : '0px 10px 10px 10px'}; /* padding top menor */
+    ">
+      <div style="font-weight: 600;">Questão ${qidx + 1}</div>
+      <div style="font-weight: 400; font-size:0.93em; margin-top:0px;">${fonte}</div>
+    </div>
+`;
+
+  
+    addBlocoEmColuna(blocoHeader, qidx, questao, -1);
+
+for (let bidx = 0; bidx < questao.blocos.length; bidx++) {
+      let bloco = questao.blocos[bidx];
+
+    // --- Processa texto/enunciado do Quill separando imagens e quebrando frases apenas se for texto grande ---
+if (bloco.tipo === "enunciado" || bloco.tipo === "texto") {
+  let conteudo = (bloco.conteudo || "");
+  if (conteudo) {
+    conteudo = conteudo.replace(/<\/?(html|body)>/gi, "");
+
+    let partes = conteudo.split(/(<img[^>]+>)/gi);
+    for (let parte of partes) {
+      parte = parte.trim();
+      if (!parte) continue;
+
+      if (/^<img/i.test(parte)) {
+        // --- IMAGEM ---
+        let srcMatch = parte.match(/src="([^"]+)"/i);
+        let src = srcMatch ? srcMatch[1] : "";
+        if (src && !src.startsWith("data:image/")) {
+          try {
+            let base64 = await urlToBase64(src);
+            parte = parte.replace(/src="[^"]+"/i, `src="${base64}"`);
+          } catch (err) {
+            console.warn("Falha ao converter imagem do Quill para base64", src, err);
+          }
+        }
+       addBlocoEmColuna(`
+  <div style="text-align:center;margin:12px 0;">
+    ${parte.replace(/style="[^"]*"/, 'style="max-width:90%;max-height:180px;display:inline-block;"')}
+  </div>
+`, qidx, questao, bidx);
+      } else {
+  // --- TEXTO ---
+  let textoParaTestar = `<div class="preview-bloco-texto" style="text-align:justify;margin-bottom:2px;">${parte.replace(/^<p>|<\/p>$/gi, '')}</div>`;
+  tempDiv.innerHTML = textoParaTestar;
+  let altura = tempDiv.offsetHeight;
+  let linhas = altura / 12; // ajuste se necessário
+
+ // SEMPRE dividir o texto por parágrafos/enters
+let paragrafos = parte.split(/\r?\n|<br\s*\/?>/gi).map(p => p.trim()).filter(Boolean);
+for (let p of paragrafos) {
+  let subPartes = splitTextoEmFrasesSmart(p, p.split(' ').length / 12); // estimativa de linhas
+  for (let sub of subPartes) {
+    addBlocoEmColuna(`<div class="preview-bloco-texto" style="text-align:justify;margin-bottom:2px;">${sub}</div>`, qidx, questao, bidx);
+  }
+}
+}
+  }
+}
+}
+    // --- Os outros tipos de bloco continuam igual ---
+   if (bloco.tipo === "imagem" && bloco.url) {
+  let url = bloco.url;
+  if (!url.startsWith("data:image/")) {
+    try {
+      url = await urlToBase64(url);
+    } catch (err) {
+      console.warn("Falha ao converter bloco imagem para base64", url, err);
+    }
+  }
+  let imgHtml = `<div style="text-align:center;margin-bottom:3px;">
+    <img src="${url}" style="max-width:95%;max-height:160px;margin:10px auto 5px auto;display:block;">
+  </div>`;
+  if (bloco.referencia) {
+    imgHtml += `<div style="text-align:center;font-size:11px;color:#999;">${bloco.referencia}</div>`;
+  }
+  addBlocoEmColuna(imgHtml, qidx, questao, bidx);
+}
+
+
+    if (bloco.tipo === "formula" && bloco.conteudo) {
+      let formulaHtml = `<div style="margin-bottom:8px; text-align:center;">\\(${bloco.conteudo}\\)</div>`;
+      addBlocoEmColuna(formulaHtml);
+    }
+
+if (bloco.tipo === "alternativas" && bloco.alternativas && bloco.alternativas.length > 0) {
+  for (let aid = 0; aid < bloco.alternativas.length; aid++) {
+  let alt = bloco.alternativas[aid];
+
+    // 1. Converte imagens para base64
+    alt = await converterImgsHtmlParaBase64(alt);
+
+    // 2. Limpa espaços extras e parágrafos vazios
+    alt = alt
+      .replace(/<p><br><\/p>/gi, "")
+      .replace(/<p>\s*<\/p>/gi, "")
+      .replace(/(&nbsp;)+/gi, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+
+    // 3. Agora monta o HTML normalmente
+    let letra = String.fromCharCode(65 + aid);
+
+let altHtml = `
+  <table style="border:none; border-collapse:collapse; margin-bottom:4px; width:100%;">
+    <tr>
+      <td style="vertical-align:top; padding:8px 0 0 0; width:32px;">
+        ${svgBolhaLetra(letra, 'alternativa-letra')}
+      </td>
+      <td style="vertical-align:top; padding:0; text-align:justify;">
+        ${alt}
+      </td>
+    </tr>
+  </table>
+`;
+
+  addBlocoEmColuna(altHtml, qidx, questao, bidx);
+}
+}
+
+
+    if (bloco.tipo === "dissertativa") {
+      let linhas = bloco.linhas || 5;
+      let instrucoes = bloco.instrucoes ? `<div style="font-size:12px;color:#555;margin-bottom:4px;">${bloco.instrucoes}</div>` : "";
+      let linhasHtml = "";
+      for (let i = 0; i < linhas; i++) {
+        linhasHtml += `<div style="border-bottom:1px solid #bbb; height:19px; margin-bottom:3px;"></div>`;
+      }
+      let dissertativaHtml = `
+        <div style="margin-top:15px; margin-bottom:12px;">
+          ${instrucoes}
+          <div style="border:1px dashed #bbb; border-radius:7px; padding:7px 13px; background:#f8fafc;">
+            ${linhasHtml}
+          </div>
+        </div>
+      `;
+      addBlocoEmColuna(dissertativaHtml, qidx, questao, bidx);
+    }
+  }
+}
+
+
+ // ---- FECHAMENTO DAS ÚLTIMAS COLUNAS E PÁGINAS ----
+  if (colunaHTML.length > 0) {
+    paginaColunas[colunaAtual] += colunaHTML;
+    colunaHTML = "";
+  }
+  if (paginaColunas[0].length > 0 || paginaColunas[1].length > 0) {
+    paginas.push(
+      `<div style="display: flex; flex-direction: row; width: 100%; box-sizing: border-box; margin: 0;">
+        <div style="width:${LARGURA_COLUNA}px; margin:0; padding:0;">${paginaColunas[0]}</div>
+        <div style="width: 0.8px; background-color: #888; height: auto; margin: 0 10px;"></div>
+        <div style="width:${LARGURA_COLUNA}px; margin:0; padding:0;">${paginaColunas[1]}</div>
+      </div>`
+    );
+    paginaColunas = ["", ""];
+    colunaHTML = "";
+  }
+
+  // HEADER só na PRIMEIRA página!
+  if (paginas.length > 0) {
+    paginas[0] = headerHtml + paginas[0];
+  }
+
+  document.body.removeChild(tempDiv);
+  return paginas;
+}
+
+
+function getBolhaCantosPx(numQuestoes) {
+  const CELL_W = 29.5;
+  const TABELA_OFFSET_LEFT = 48;
+  const TABELA_OFFSET_TOP = 19;
+  const TABELA_H = 135;
+  const X_LEFT = TABELA_OFFSET_LEFT - 10;
+  const X_RIGHT = TABELA_OFFSET_LEFT + (CELL_W * numQuestoes) + 13;
+  const Y_TOP = TABELA_OFFSET_TOP - 8;
+  const Y_BOTTOM = TABELA_OFFSET_TOP + TABELA_H - 7;
+  return [
+    [X_LEFT, Y_TOP],      // canto superior esquerdo
+    [X_RIGHT, Y_TOP],     // canto superior direito
+    [X_RIGHT, Y_BOTTOM],  // canto inferior direito
+    [X_LEFT, Y_BOTTOM]    // canto inferior esquerdo
+  ];
+}
+
+function calcularDelimitadoresRelativos(numQuestoes, numAlternativas) {
+  // Parâmetros ajustáveis: controla o "vazio" (margem) em volta do bloco de bolhas
+  const margemX = Math.max(0.11, 0.24 - numQuestoes * 0.012); // aumenta margem para menos questões
+  const margemY = Math.max(0.12, 0.22 - numAlternativas * 0.018); // idem para alternativas
+
+  let xEsq = margemX;
+  let xDir = 1 - margemX;
+  let yTopo = margemY;
+  let yBase = 1 - margemY;
+
+  let delimitadores = [
+    [xEsq, yTopo],  // canto superior esquerdo
+    [xDir, yTopo],  // canto superior direito
+    [xDir, yBase],  // canto inferior direito
+    [xEsq, yBase],  // canto inferior esquerdo
+  ];
+
+  console.log("Delimitadores relativos ajustados para", numQuestoes, "questões e", numAlternativas, "alternativas:");
+  delimitadores.forEach((d, i) => {
+    console.log(`P${i+1}: [${d[0].toFixed(4)}, ${d[1].toFixed(4)}]`);
+  });
+
+  return delimitadores;
+}
+
+function gerarQRCodeBase64(texto, tamanho = 4) {
+  let q = qrcode(0, 'L');
+  q.addData(texto);
+  q.make();
+  let img = document.createElement('img');
+  img.src = q.createDataURL(tamanho, 8);
+  return img.src;
+}
+
+function gerarConteudoQrComDelimitadores(idUnico, numQuestoes, numAlternativas, gabaritoVersao, delimitadoresRelativos) {
+  let dadosProva = `${idUnico}|${numQuestoes}|${numAlternativas}|${gabaritoVersao}`;
+  let delimStr = delimitadoresRelativos
+    .map(d => `${d[0].toFixed(4)},${d[1].toFixed(4)}`)
+    .join("|");
+  // Duas linhas: 1ª = dados, 2ª = delimitadores
+  return `${dadosProva}\n${delimStr}`;
+}
+document.getElementById('btnGerarProva').onclick = async function () {
+  if (questoesSalvas.length === 0) {
+    alert("Adicione ao menos uma questão para gerar a prova!");
+    return;
+  }
+
+  document.getElementById('previewProvaContainer').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  const versoes = 4;
+  const previewPaginasArea = document.getElementById("previewPaginasArea");
+  previewPaginasArea.innerHTML = "";
+
+  for (let v = 1; v <= versoes; v++) {
+    // --- GERA QUESTÕES, QR, ID PARA CADA VERSÃO ---
+    let questoesFinal = JSON.parse(JSON.stringify(questoesSalvas));
+    // Embaralhamento de questões e alternativas
+    questoesFinal = embaralhar(questoesFinal).map(q => {
+      let q2 = JSON.parse(JSON.stringify(q));
+      let altBloco = Array.isArray(q2.blocos) ? q2.blocos.find(b => b.tipo === "alternativas") : null;
+      if (altBloco && altBloco.alternativas) {
+        let zipped = altBloco.alternativas.map((alt, i) => ({ alt, i }));
+        zipped = embaralhar(zipped);
+        altBloco.alternativas = zipped.map(z => z.alt);
+        altBloco.correta = zipped.findIndex(z => z.i === altBloco.correta);
+      }
+      return q2;
+    });
+
+    let idUnico = gerarIdUnico();
+    let maxAlts = Math.max(...questoesFinal.map(q => {
+      let alt = Array.isArray(q.blocos) ? q.blocos.find(b => b.tipo === "alternativas") : null;
+      return alt && alt.alternativas ? alt.alternativas.length : 0;
+    }));
+
+    let delimitadoresRelativos = calcularDelimitadoresRelativos(questoesFinal.length, maxAlts);
+    let gabaritoVersao = questoesFinal.map(q => {
+      let alt = Array.isArray(q.blocos) ? q.blocos.find(b => b.tipo === "alternativas") : null;
+      return alt && typeof alt.correta === "number" ? alt.correta : 0;
+    }).join('');
+
+    let qrTexto = gerarConteudoQrComDelimitadores(idUnico, questoesFinal.length, maxAlts, gabaritoVersao, delimitadoresRelativos);
+    let qrBase64 = gerarQRCodeBase64(qrTexto, 4);
+
+    let paginasA4 = await montarPaginasA4Questoes(questoesFinal, logoBase64, qrBase64, idUnico);
+console.log("QUESTOES FINAL PARA PREVIEW:", questoesFinal);
+
+
+    // --- Centraliza imagens manualmente antes do PDF ---
+    paginasA4.forEach((html, i) => {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = html;
+      wrapper.querySelectorAll('img').forEach(img => {
+        const div = document.createElement('div');
+        div.style.textAlign = 'center';
+        div.style.margin = '12px 0';
+        img.removeAttribute("style");
+        img.style.maxWidth = "100%";
+        img.style.height = "auto";
+        img.parentNode.insertBefore(div, img);
+        div.appendChild(img);
+      });
+      paginasA4[i] = wrapper.innerHTML;
+    });
+
+    // --- Renderiza preview ---
+    for (let idx = 0; idx < paginasA4.length; idx++) {
+      const pagina = document.createElement("div");
+      pagina.className = "pagina-a4";
+      pagina.style.margin = "0 auto 40px auto";
+      pagina.style.boxShadow = "0 0 12px #0003";
+      pagina.innerHTML = paginasA4[idx];
+      previewPaginasArea.appendChild(pagina);
+    }
+    if (window.MathJax) await MathJax.typesetPromise([previewPaginasArea]);
+
+  }
+};
+
+
+
+
+// ESC fecha o preview
+document.addEventListener('keydown', function (e) {
+  const preview = document.getElementById('previewProvaContainer');
+  if (preview && preview.style.display === 'flex') {
+    if (e.key === "Escape") {
+      preview.style.display = 'none';
+      document.body.style.overflow = "";
+    }
+  }
+});
+
+  </script>
+<script>
+
+// função IA para criar questões
+
+function converterRespostaEnemJsonParaBlocos(jsonText) {
+  let obj;
+  try {
+    obj = typeof jsonText === "object" ? jsonText : JSON.parse(jsonText);
+  } catch (e) {
+    alert("Erro ao interpretar resposta da IA como JSON. Reveja o comando ou tente novamente.");
+    return [];
+  }
+
+  let blocosIa = [];
+  if (obj.context) {
+    blocosIa.push({ tipo: "enunciado", conteudo: obj.context, referencia: "" });
+  }
+  if (Array.isArray(obj.files) && obj.files.length > 0) {
+    // Se quiser, renderize imagens
+    obj.files.forEach(url => {
+      blocosIa.push({ tipo: "imagem", url: url, referencia: "" });
+    });
+  }
+  if (obj.alternativesIntroduction) {
+    blocosIa.push({ tipo: "texto", conteudo: obj.alternativesIntroduction, referencia: "" });
+  }
+  if (Array.isArray(obj.alternatives)) {
+    let alternativas = obj.alternatives.map(alt => alt.text);
+    let correta = obj.alternatives.findIndex(alt => alt.isCorrect);
+    if (alternativas.length > 0) {
+      blocosIa.push({ tipo: "alternativas", alternativas, correta: correta >= 0 ? correta : 0 });
+    }
+  }
+  return blocosIa;
+}
+
+// Abrir o modal IA
+document.getElementById("btnIaGemini").onclick = function() {
+  document.getElementById("modalIa").style.display = "flex";
+  document.body.style.overflow = "hidden";
+  document.getElementById("inputPromptIa").value = "";
+  document.getElementById("iaStatusMsg").style.display = "none";
+  document.getElementById("iaStatusMsg").innerText = "";
+  document.getElementById("btnConfirmarIa").disabled = false;
+};
+
+// Enviar comando para IA
+document.getElementById("btnConfirmarIa").onclick = async function() {
+  const comando = document.getElementById("inputPromptIa").value.trim();
+  if (!comando) {
+    document.getElementById("iaStatusMsg").style.display = "block";
+    document.getElementById("iaStatusMsg").innerHTML = "Digite um comando para a IA.";
+    return;
+  }
+  this.disabled = true;
+  document.getElementById("iaStatusMsg").style.display = "block";
+  document.getElementById("iaStatusMsg").innerHTML = "Gerando questão, aguarde...";
+
+  try {
+    const resp = await fetch("http://localhost:3001/api/gerar-questao-ia", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: comando })
+    });
+    const data = await resp.json();
+    if (data && data.resposta) {
+      blocos = converterRespostaEnemJsonParaBlocos(data.resposta);
+      await renderBlocos();
+      document.getElementById("modalIa").style.display = "none";
+      document.body.style.overflow = "";
+      this.disabled = false;
+      alert("Questão gerada! Revise, edite ou salve.");
+    } else {
+      throw new Error(data && data.error ? data.error : "Sem resposta da IA");
+    }
+  } catch (err) {
+    document.getElementById("iaStatusMsg").innerHTML =
+      "Erro: " + (err.message || err) + "<br>Tente novamente.";
+    this.disabled = false;
+  }
+};
+
+// Cancelar IA
+document.getElementById("btnCancelarIa").onclick = function() {
+  document.getElementById("modalIa").style.display = "none";
+  document.body.style.overflow = "";
+};
+// Fechar modal IA (×)
+document.getElementById("btnFecharIa").onclick = function() {
+  document.getElementById("modalIa").style.display = "none";
+  document.body.style.overflow = "";
+};
+
+
+
+</script>
+<script>
+
+  // Elementos do modal
+  const btnSalvarQuestao = document.getElementById("btnSalvarQuestao");
+  const modal = document.getElementById("modalCamposObrigatorios");
+  const btnConfirmarModal = document.getElementById("btnConfirmarCamposObrigatorios");
+  const btnCancelarModal = document.getElementById("btnCancelarCamposObrigatorios");
+
+  // Ao clicar em "Salvar Questão", abre o modal
+  btnSalvarQuestao.onclick = function(e) {
+    e.preventDefault();
+    modal.style.display = "flex";
+    document.body.style.overflow = "hidden"; // trava o scroll
+  };
+
+  // Ao clicar em "Cancelar", fecha o modal
+  btnCancelarModal.onclick = function() {
+    modal.style.display = "none";
+    document.body.style.overflow = "";
+    removerMensagemErroModal();
+  };
+
+  // Ao confirmar, valida e só então salva a questão
+  btnConfirmarModal.onclick = function() {
+    const area = document.getElementById("modalAreaConhecimento").value.trim();
+    const componente = document.getElementById("modalComponenteCurricular").value.trim();
+    const objeto = document.getElementById("modalObjetoConhecimento").value.trim();
+    if (!area || !componente || !objeto) {
+      mostrarMensagemErroModal("Preencha todos os campos!");
+      return;
+    }
+    removerMensagemErroModal();
+    modal.style.display = "none";
+    document.body.style.overflow = "";
+    // Chame aqui a função para salvar a questão, passando os campos preenchidos
+    salvarQuestaoComCamposObrigatorios(area, componente, objeto);
+  };
+
+  // Função para mostrar erro dentro do modal
+  function mostrarMensagemErroModal(msg) {
+    let erro = document.getElementById("erroCamposObrigatorios");
+    if (!erro) {
+      erro = document.createElement("div");
+      erro.id = "erroCamposObrigatorios";
+      erro.style = "color:#dc2626; font-weight:bold; margin-bottom:10px; text-align:center;";
+      const ref = document.querySelector("#btnConfirmarCamposObrigatorios").parentNode.parentNode;
+      ref.parentNode.insertBefore(erro, ref);
+    }
+    erro.textContent = msg;
+  }
+
+  function removerMensagemErroModal() {
+    const erro = document.getElementById("erroCamposObrigatorios");
+    if (erro) erro.remove();
+  }
+
+  // Função placeholder para salvar (iremos implementar no PASSO 3)
+ function salvarQuestaoComCamposObrigatorios(area, componente, objeto) {
+  if (!blocos.length) {
+    alert("Adicione ao menos um bloco para a questão!");
+    return;
+  }
+  let blocoFonte = blocos.find(b => b.tipo === "fonte");
+  let fonte = blocoFonte ? blocoFonte.fonte : "";
+
+
+// ... ao salvar a questão, já com blocos preenchidos e campos do modal
+const questaoParaBanco = {
+  blocos: JSON.parse(JSON.stringify(blocos)),
+  areaConhecimento: area,         // vem do modal
+  componenteCurricular: componente, // vem do modal
+  objetoConhecimento: objeto,     // vem do modal
+  fonte: fonte
+};
+
+
+  // Envia para o backend (API)
+fetch("http://localhost:3001/api/questoes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(questaoParaBanco)
+  })
+  .then(resp => resp.json())
+  .then(data => {
+    alert("Questão salva no banco!");
+    blocos = [];
+    renderBlocos();
+    atualizarGabarito();
+    // Adiciona à lista local, se desejar
+    questoesSalvas.push(questaoParaBanco);
+    localStorage.setItem("questoesSelecionadas", JSON.stringify(questoesSalvas));
+    renderQuestoesSalvas();
+  })
+  .catch(err => {
+    alert("Erro ao salvar no banco: " + err);
+  });
+
+}
+
+  // Redireciona para a página do Banco de Questões
+  document.getElementById("btnBancoQuestoes").addEventListener("click", () => {
+    window.location.href = "banco-de-questoes.html";
+  });
+
+
+  // VARIÁVEL para guardar o editor Quill ativo
+  let quillAtivoParaImagem = null;
+
+function escolherUpload() {
+  const quill = window.ultimoEditorQuillAtivo;
+  let range = window.ultimoRangeAtivo;
+  if (!range) {
+    quill.setSelection(quill.getLength(), 0);
+    range = quill.getSelection();
+  }
+
+  const input = document.createElement('input');
+  input.setAttribute('type', 'file');
+  input.setAttribute('accept', 'image/*');
+  input.click();
+
+  input.onchange = () => {
+    const file = input.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        quill.insertEmbed(range.index, 'image', reader.result, 'user');
+        quill.setSelection(range.index + 1);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  fecharModalImagem();
+}
+function inserirImagemPorUrl() {
+  const url = document.getElementById("input-url-imagem").value.trim();
+
+  if (!url) {
+    alert("Digite uma URL de imagem.");
+    return;
+  }
+
+  const editorAtivo = window.editorAtivoImagem;
+
+  if (!editorAtivo || !editorAtivo.quill || !editorAtivo.range) {
+    alert("Editor não está disponível no momento. Clique no botão de imagem novamente.");
+    return;
+  }
+
+  // Insere a imagem
+  editorAtivo.quill.insertEmbed(editorAtivo.range.index, 'image', url, 'user');
+  editorAtivo.quill.setSelection(editorAtivo.range.index + 1);
+
+  // Fecha o modal
+  document.getElementById("modalInserirImagem").style.display = "none";
+  document.getElementById("input-url-imagem").value = "";
+}
+
+
+
+</script>
+</body>
+</html>

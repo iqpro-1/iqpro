@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QI Provas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(to top, #ffffff 30%, #a7f3d0 100%);
+    }
+    .video-bg {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  object-fit: cover;
+  z-index: -1;
+  opacity: 0.93; /* ajuste como preferir */
+}
+.overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(14,37,66,0.45); /* azul escuro translúcido */
+  z-index: 0;
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .video-bg {
+    object-fit: cover;
+    width: 100vw;
+    height: 100vh;
+  }
+}
+
+  </style>
+</head>
+<body class="relative text-gray-800 min-h-screen flex flex-col items-center justify-center">
+
+
+  
+  <!-- Vídeo de fundo -->
+<video class="video-bg" autoplay muted loop playsinline>
+  <source src="Reading Resilience Workshop For Teachers Intro Educational Video in Blue and White Realistic Style.mp4" type="video/mp4">
+  Seu navegador não suporta vídeo.
+</video>
+<div class="overlay"></div>
+
+  <div class="w-full max-w-3xl lg:max-w-4xl mr-auto ml-auto pr-6 pl-6">
+<header class="w-full flex flex-col items-center pt-0 pb-10">
+  <h1 class="text-5xl md:text-7xl font-extrabold text-white drop-shadow-[0_2px_16px_rgba(16,230,192,0.85)] tracking-tight mb-1">
+    IQ-PRO
+  </h1>
+  <p class="text-white text-2xl md:text-3xl text-center">
+    Sua plataforma inteligente para montar e corrigir provas
+  </p>
+</header>
+
+  <div class="mt-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <!-- seus cards/botões aqui -->
+      <a href="montar-prova.html" class="bg-emerald-500 hover:bg-emerald-400 transition-all py-3 px-8 rounded-xl shadow-lg hover:scale-105 duration-300 w-full max-w-xs mx-auto">
+        <h2 class="text-2xl font-bold mb-1">📝 Criar Prova</h2>
+        <p class="text-gray-100 text-lg">Monte provas, crie questões e peça ajuda a IA.</p>
+      </a>
+      <a href="banco-de-questoes.html" class="bg-emerald-500 hover:bg-emerald-400 transition-all py-3 px-8 rounded-xl shadow-lg hover:scale-105 duration-300 w-full max-w-xs mx-auto">
+        <h2 class="text-2xl font-bold mb-1">📚 Banco de Questões</h2>
+        <p class="text-gray-100 text-lg">Gerencie e monte provas com as questões cadastradas.</p>
+      </a>
+      <a href="QiprovasApp/indexapp.html" class="bg-emerald-500 hover:bg-emerald-400 transition-all py-3 px-8 rounded-xl shadow-lg hover:scale-105 duration-300 w-full max-w-xs mx-auto">
+        <h2 class="text-2xl font-bold mb-1">📱 Correção de Provas</h2>
+        <p class="text-gray-100 text-lg">Corrija provas pelo celular usando QR Code e gabarito.</p>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+</html>

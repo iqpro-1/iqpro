@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>QI Provas - Correção por QR Code</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script async src="https://docs.opencv.org/4.7.0/opencv.js"></script>
+  <style>
+    body {
+      background: #e7fef6;
+      font-family: 'Inter', Arial, sans-serif;
+      margin: 0; padding: 0;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 420px;
+      margin: 50px auto 0 auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 36px #3ee48944;
+      padding: 38px 24px 32px 24px;
+      position: relative;
+      overflow: visible;
+    }
+    .titulo {
+      font-size: 1.7rem;
+      font-weight: bold;
+      margin-bottom: 14px;
+      color: #0f3724;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 7px;
+    }
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(130deg,#2ed996 70%,#38bdf8 100%);
+      border-radius: 10px;
+      margin-right: 12px;
+      box-shadow: 0 2px 12px #29d39a33;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #fff;
+      font-size: 1.5em;
+      letter-spacing: 2px;
+    }
+    .brand-text {
+      font-size: 1.15em;
+      font-weight: 500;
+      color: #134e4a;
+      letter-spacing: 1px;
+    }
+    #reader.fullscreen-reader {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+      position: fixed !important;
+      top: 0; left: 0;
+      background: #000 !important;
+      z-index: 9999;
+      border-radius: 0 !important;
+      display: flex !important;
+      justify-content: center;
+      align-items: center;
+      transition: none;
+    }
+    .desc {
+      text-align: center;
+      color: #0f3724;
+      font-size: 1.13em;
+      font-weight: 400;
+      margin-bottom: 18px;
+    }
+    #reader, #gabarito-section, #resultado-section {
+      display: none;
+      transition: opacity .5s;
+    }
+    .show {
+      display: block !important;
+      opacity: 1 !important;
+      position: static !important;
+      pointer-events: all;
+    }
+    #reader {
+      width: 100%;
+      height: 420px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      background: #000;
+      border-radius: 12px;
+    }
+    #gabarito-section {
+      padding-top: 8px;
+      margin-top: 0;
+      text-align: center;
+    }
+    #gabarito-result {
+      color: #164e35;
+      font-size: 1.07em;
+      margin-top: 8px;
+    }
+    .botao {
+      background: linear-gradient(90deg,#2ed996 70%,#38bdf8 120%);
+      color: #fff;
+      font-size: 1.09rem;
+      border: none;
+      border-radius: 10px;
+      padding: 11px 28px;
+      margin: 26px 0 10px 0;
+      font-weight: 700;
+      cursor: pointer;
+      transition: filter .22s;
+      box-shadow: 0 2px 16px #2ed99622;
+    }
+    .botao:active { filter: brightness(0.94);}
+    #debug-img { display:none; max-width:100%; margin-top:10px; }
+    #capture-container {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      max-width: 95vw;
+      margin: 0 auto 10px auto;
+      min-height: 120px;
+    }
+    #canvas-overlay-debug {
+      position: absolute;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 40;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    #resultado-section {
+      text-align: center;
+      padding-top: 10px;
+      min-height: 160px;
+    }
+    #qr-result {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+#debug-img, #canvas-overlay-debug {
+  width: auto !important;
+  height: auto !important;
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
+
+    .correcao-detalhe {
+      font-size: 1.12em;
+      color: #116344;
+      margin: 8px 0 18px 0;
+      letter-spacing: 1px;
+    }
+    @media (max-width:500px){
+      .container{ margin:18px 1vw;}
+      #capture-container { min-height: 80px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="brand">
+      <div class="brand-logo">QI</div>
+      <span class="brand-text">Provas</span>
+    </div>
+    <div class="titulo">Correção Automática <span style="font-size:0.7em;font-weight:500;"></span></div>
+    <div class="desc">
+      Escaneie o QR code da prova.<br>
+      Correção segura, rápida e moderna.
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+
+    <!-- Debug/resultados no topo -->
+    <div id="debug-section"></div>
+
+    <!-- Etapa 1: Leitor de QR -->
+    <div id="reader"></div>
+    <div class="qr-result" id="qr-result"></div>
+
+    <!-- Etapa 2: Captura de gabarito -->
+    <div id="gabarito-section">
+      <div id="debug-delimitadores" style="font-size:0.97em; color:#dc2626; margin-bottom:3px;"></div>
+      <div style="margin:16px 0 10px 0; font-size:1.06em; color:#17685d;">
+        <b>Confira as respostas capturadas.</b>
+        <br>
+      </div>
+      <div id="gabarito-result"></div>
+      <!-- Container com imagem e overlay -->
+      <div id="capture-container">
+        <img id="debug-img"/>
+      </div>
+    </div>
+
+    <!-- Etapa 3: Resultado (detalhamento das questões, sem nota/sem botão) -->
+    <div id="resultado-section">
+</div>
+
+  </div>
+
+
+<script>
+let provaParams = null;
+let html5Qr = null;
+
+function parseQrContent(content) {
+  const linhas = content.split('\n');
+  const parts = linhas[0].split("|");
+  if (parts.length < 4) return null;
+
+  let dissertativas = [];
+  if (parts.length > 4 && parts[4]) {
+    dissertativas = parts[4].split(',').map(Number); // zero-based
+  }
+
+  // Parse delimitadores (caso existam na segunda linha)
+  let delimitadores = [];
+  if (linhas.length > 1 && linhas[1].trim() !== "") {
+    delimitadores = linhas[1].split("|").map(item => {
+      const [x, y] = item.split(",").map(Number);
+      return [x, y];
+    });
+  }
+
+  // Novo: transforma cada caractere numérico em número (0 = A, 1 = B, ...)
+  let gabaritoArray = parts[3].split("").map(x => {
+    if (/[A-E]/i.test(x)) return x.toUpperCase().charCodeAt(0) - 65;
+    return parseInt(x);
+  });
+
+  return {
+    provaId: parts[0],
+    numQuestoes: parseInt(parts[1]),
+    numAlternativas: parseInt(parts[2]),
+    gabarito: gabaritoArray,
+    delimitadores: delimitadores,
+    dissertativas: dissertativas
+  };
+}
+
+// Inicia leitor de QR code e processa dados
+async function startQrCamera() {
+  document.getElementById('reader').innerHTML = "";
+  document.getElementById('qr-result').innerHTML = "";
+
+  if (!html5Qr) html5Qr = new Html5Qrcode("reader");
+
+  const cameras = await Html5Qrcode.getCameras();
+  let cameraId = null;
+  if (cameras && cameras.length) {
+    const backCam = cameras.find(cam => cam.label.toLowerCase().includes('back') || cam.label.toLowerCase().includes('traseira'));
+    cameraId = backCam ? backCam.id : cameras[0].id;
+  }
+
+  html5Qr.start(
+    cameraId || { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    (decodedText, decodedResult) => {
+      html5Qr.stop().then(() => {
+        window.provaParams = parseQrContent(decodedText);
+
+        if (!window.provaParams) {
+          document.getElementById('qr-result').innerHTML =
+            "<span style='color:red'>QR code inválido!</span>";
+          return;
+        }
+
+        document.getElementById('reader').style.display = "none";
+
+        document.getElementById('qr-result').innerHTML =
+          `<b>ID Prova:</b> ${window.provaParams.provaId}<br>
+           <b>Questões:</b> ${window.provaParams.numQuestoes} &nbsp; <b>Alternativas:</b> ${window.provaParams.numAlternativas}<br>
+           <b>Gabarito:</b> ${window.provaParams.gabarito.map(x => String.fromCharCode(65 + x)).join(" ")}<br>
+           <b>Delimitadores:</b> ${
+            (window.provaParams.delimitadores.length ?
+              window.provaParams.delimitadores.map(d => `${d[0]},${d[1]}`).join(" | ")
+              : "<i>Não fornecidos</i>"
+            )
+          }`;
+
+        document.getElementById('qr-result').innerHTML +=
+          `<br><button id="btnAlinhar" class="botao" style="margin-top:18px;" onclick="startGabaritoAlignment()">Corrigir Gabarito</button>`;
+      });
+    },
+    (errorMessage) => {}
+  ).catch(err => {
+    document.getElementById('qr-result').innerText = 'Não foi possível acessar a câmera!';
+  });
+}
+window.onload = startQrCamera;
+
+function startGabaritoAlignment() {
+  const numQuestoes = window.provaParams.numQuestoes;
+  const numAlternativas = window.provaParams.numAlternativas;
+
+  const readerDiv = document.getElementById('reader');
+  readerDiv.classList.add("fullscreen-reader");
+  readerDiv.innerHTML = '';
+
+  const video = document.createElement('video');
+  video.setAttribute('autoplay', true);
+  video.setAttribute('playsinline', true);
+  video.style.position = "absolute";
+  video.style.width = "100vw";
+  video.style.height = "100vh";
+  readerDiv.appendChild(video);
+
+  // --- INÍCIO: Overlay do retângulo ---
+  const overlayRect = document.createElement('canvas');
+  overlayRect.style.position = "absolute";
+  overlayRect.style.top = "0";
+  overlayRect.style.left = "0";
+  overlayRect.style.pointerEvents = "none";
+  overlayRect.style.zIndex = 50;
+  readerDiv.appendChild(overlayRect);
+
+  video.addEventListener('loadeddata', () => {
+    overlayRect.width = video.videoWidth;
+    overlayRect.height = video.videoHeight;
+    desenharOverlayRect();
+    overlayRect.style.width = video.style.width;
+    overlayRect.style.height = video.style.height;
+  });
+
+  function desenharOverlayRect() {
+    const ctx = overlayRect.getContext('2d');
+    ctx.clearRect(0, 0, overlayRect.width, overlayRect.height);
+    const w = overlayRect.width * 1.0;
+    const h = overlayRect.height * 0.40;
+    const x = 0;
+    const y = overlayRect.height * 0.30;
+
+    ctx.strokeStyle = "#2ed996";
+    ctx.lineWidth = 5;
+    ctx.strokeRect(x, y, w, h);
+
+    ctx.font = "bold 24px Arial";
+    ctx.fillStyle = "#2ed996";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Encaixe o gabarito aqui", x + w / 2, y + h / 2);
+  }
+
+  window.addEventListener("resize", () => {
+    overlayRect.width = video.videoWidth;
+    overlayRect.height = video.videoHeight;
+    desenharOverlayRect();
+  });
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
+    video.srcObject = stream;
+  });
+
+  const btnCapturar = document.createElement('button');
+  btnCapturar.textContent = "Capturar / Corrigir";
+  btnCapturar.className = "botao";
+  btnCapturar.style.position = "fixed";
+  btnCapturar.style.bottom = "36px";
+  btnCapturar.style.left = "50%";
+  btnCapturar.style.transform = "translateX(-50%)";
+  btnCapturar.style.zIndex = "99";
+  btnCapturar.disabled = true;
+
+  btnCapturar.onclick = () => {
+    if (video.videoWidth > 0 && video.videoHeight > 0) {
+      setTimeout(() => {
+        corrigirGabaritoPorImagem(video, { numQuestoes, numAlternativas });
+      }, 100);
+    } else {
+      alert("Aguarde a câmera carregar o vídeo...");
+    }
+  };
+
+  video.addEventListener('loadeddata', () => {
+    btnCapturar.disabled = false;
+  });
+
+  readerDiv.appendChild(btnCapturar);
+}
+
+// Clusterização NxP - agrupa bolhas em N colunas (questões), cada uma com P linhas (alternativas)
+function clusterizarBolhasNxP(bolhas, N, P) {
+  let bolhasOrdenadasX = [...bolhas].sort((a, b) => a.x - b.x);
+  let xs = bolhasOrdenadasX.map(b => b.x);
+  let ys = bolhasOrdenadasX.map(b => b.y);
+  let minX = Math.min(...xs), maxX = Math.max(...xs);
+  let minY = Math.min(...ys), maxY = Math.max(...ys);
+  let margemX = (maxX - minX) * 0.05;
+  let margemY = (maxY - minY) * 0.05;
+  let bolhasFiltradas = bolhasOrdenadasX.filter(b =>
+    b.x >= minX - margemX && b.x <= maxX + margemX &&
+    b.y >= minY - margemY && b.y <= maxY + margemY
+  );
+  let raios = bolhasFiltradas.map(b => b.r);
+  let raioMedio = raios.reduce((soma, r) => soma + r, 0) / (raios.length || 1);
+  let desvio = Math.max(3, raioMedio * 0.30);
+  bolhasFiltradas = bolhasFiltradas.filter(b => Math.abs(b.r - raioMedio) <= desvio);
+
+  let colunas = [];
+  let bolhasPorColuna = Math.floor(bolhasFiltradas.length / N);
+  let bolhasRestantes = [...bolhasFiltradas];
+  for (let i = 0; i < N; i++) {
+    let ini = i * bolhasPorColuna;
+    let fim = (i === N - 1) ? bolhasFiltradas.length : (i + 1) * bolhasPorColuna;
+    let bolhasColuna = bolhasRestantes.slice(ini, fim);
+    let bolhasColunaY = bolhasColuna.sort((a, b) => a.y - b.y).slice(0, P);
+    colunas.push(bolhasColunaY);
+  }
+  return { colunas };
+}
+
+// Função principal
+async function corrigirGabaritoPorImagem(video, params) {
+  if (typeof cv === 'undefined' || !cv.imread) {
+    alert('OpenCV ainda não carregou! Aguarde alguns segundos...');
+    return;
+  }
+  const readerDiv = document.getElementById('reader');
+  readerDiv.classList.remove("fullscreen-reader");
+  readerDiv.innerHTML = '';
+  document.getElementById('gabarito-section').classList.add("show");
+
+  // Crop da imagem
+  const proporcaoLargura = 1.0;
+  const proporcaoAltura = 0.40;
+  const proporcaoX = 0.0;
+  const proporcaoY = 0.30;
+
+  const cropX = Math.round(video.videoWidth * proporcaoX);
+  const cropY = Math.round(video.videoHeight * proporcaoY);
+  const cropW = Math.round(video.videoWidth * proporcaoLargura);
+  const cropH = Math.round(video.videoHeight * proporcaoAltura);
+
+  const captureCanvas = document.createElement('canvas');
+  captureCanvas.width = cropW;
+  captureCanvas.height = cropH;
+  const ctx = captureCanvas.getContext('2d');
+  ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+  const debugImg = document.getElementById('debug-img');
+  debugImg.src = captureCanvas.toDataURL();
+  debugImg.style.display = 'block';
+
+  let oldOverlay = document.getElementById('canvas-overlay-debug');
+  if (oldOverlay) oldOverlay.remove();
+
+  const overlayDebug = document.createElement('canvas');
+  overlayDebug.width = captureCanvas.width;
+  overlayDebug.height = captureCanvas.height;
+  debugImg.width = captureCanvas.width;
+  debugImg.height = captureCanvas.height;
+  overlayDebug.id = 'canvas-overlay-debug';
+  overlayDebug.style.position = 'absolute';
+  overlayDebug.style.top = '0';
+  overlayDebug.style.left = '0';
+  overlayDebug.style.pointerEvents = 'none';
+  overlayDebug.style.zIndex = 40;
+  overlayDebug.style.maxWidth = '100%';
+  overlayDebug.style.maxHeight = '100%';
+  document.getElementById('capture-container').appendChild(overlayDebug);
+
+  // --- DETECÇÃO DE CÍRCULOS ---
+  let src = cv.imread(captureCanvas);
+  let gray = new cv.Mat();
+  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+  cv.medianBlur(gray, gray, 5);
+
+  let circles = new cv.Mat();
+  cv.HoughCircles(
+    gray,
+    circles,
+    cv.HOUGH_GRADIENT,
+    1,
+    30,
+    100,
+    16,
+    12,
+    28
+  );
+  let bolhasDetectadas = [];
+  if (circles.cols > 0) {
+    for (let i = 0; i < circles.cols; ++i) {
+      let x = circles.data32F[i * 3];
+      let y = circles.data32F[i * 3 + 1];
+      let r = circles.data32F[i * 3 + 2];
+      bolhasDetectadas.push({ x, y, r });
+    }
+  }
+
+  // ------- Escolha automática: grade forçada ou clusterizada -------
+  let N = params?.numQuestoes || 10;
+  let P = params?.numAlternativas || 5;
+  let minRequired = Math.floor(0.6 * N * P);
+  let usarGradeForcada = bolhasDetectadas.length < minRequired;
+
+  let xs = bolhasDetectadas.map(b => b.x);
+  let ys = bolhasDetectadas.map(b => b.y);
+  let minX = xs.length ? Math.min(...xs) : 0;
+  let maxX = xs.length ? Math.max(...xs) : captureCanvas.width;
+  let minY = ys.length ? Math.min(...ys) : 0;
+  let maxY = ys.length ? Math.max(...ys) : captureCanvas.height;
+  let gradeEstimada = [];
+  let colunas = [];
+
+  if (usarGradeForcada) {
+    for (let i = 0; i < N; i++) {
+      let coluna = [];
+      for (let j = 0; j < P; j++) {
+        let x = (N === 1) ? (minX + maxX) / 2 : minX + i * (maxX - minX) / (N - 1);
+        let y = (P === 1) ? (minY + maxY) / 2 : minY + j * (maxY - minY) / (P - 1);
+        coluna.push({ x, y, r: 12 });
+      }
+      gradeEstimada.push(coluna);
+    }
+  } else {
+    colunas = clusterizarBolhasNxP(bolhasDetectadas, N, P).colunas;
+    for (let i = 0; i < N; i++) {
+      let coluna = [];
+      for (let j = 0; j < P; j++) {
+        if (colunas[i] && colunas[i][j]) {
+          coluna.push(colunas[i][j]);
+        }
+      }
+      gradeEstimada.push(coluna);
+    }
+  }
+
+  // --- VISUALIZAÇÃO DA GRADE ---
+  let overlayCtx = overlayDebug.getContext('2d');
+  overlayCtx.clearRect(0, 0, overlayDebug.width, overlayDebug.height);
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < P; j++) {
+      let g = gradeEstimada[i][j];
+      overlayCtx.beginPath();
+      overlayCtx.arc(g.x, g.y, 15, 0, 2 * Math.PI);
+      overlayCtx.strokeStyle = "#22d3ee";
+      overlayCtx.lineWidth = 2;
+      overlayCtx.stroke();
+      overlayCtx.font = "bold 13px Arial";
+      overlayCtx.fillStyle = "#eab308";
+      overlayCtx.fillText(`Q${i + 1}${String.fromCharCode(65 + j)}`, g.x + 6, g.y - 6);
+    }
+  }
+
+  // --- LEITURA DAS RESPOSTAS ---
+  let respostasAluno = {};
+  const dissertativas = window.provaParams?.dissertativas || [];
+
+  for (let i = 0; i < N; i++) {
+    if (dissertativas.includes(i)) {
+      respostasAluno[i + 1] = null;
+      continue;
+    }
+    let pontos = usarGradeForcada ? gradeEstimada[i] : (colunas[i] || gradeEstimada[i]);
+    let melhorIndice = -1;
+    let menorMedia = 255;
+    for (let j = 0; j < Math.min(P, pontos.length); j++) {
+      let bolha = pontos[j];
+      let cx = Math.floor(bolha.x);
+      let cy = Math.floor(bolha.y);
+      let raio = usarGradeForcada ? 12 : Math.floor(bolha.r * 0.55) || 10;
+      let soma = 0, qtd = 0;
+      for (let dx = -raio; dx <= raio; dx++) {
+        for (let dy = -raio; dy <= raio; dy++) {
+          let nx = cx + dx, ny = cy + dy;
+          if (nx >= 0 && nx < gray.cols && ny >= 0 && ny < gray.rows) {
+            soma += gray.ucharPtr(ny, nx)[0];
+            qtd++;
+          }
+        }
+      }
+      let media = soma / qtd;
+      if (media < menorMedia) {
+        menorMedia = media;
+        melhorIndice = j;
+      }
+    }
+    respostasAluno[i + 1] = melhorIndice;
+  }
+
+  // --- COMPARAÇÃO COM GABARITO ---
+  const gabarito = (window.provaParams?.gabarito || []);
+  let acertos = 0;
+  let detalheQuestoesHTML = "";
+
+  for (let i = 0; i < N; i++) {
+    if (dissertativas.includes(i)) {
+      detalheQuestoesHTML += `<div>
+        Questão <b>${i + 1}</b>: <span style="color:#6366f1;"><i>Dissertativa – corrigir manualmente</i></span>
+      </div>`;
+      continue;
+    }
+    let resposta = respostasAluno[i + 1];
+    let letraAluno = (resposta !== undefined && resposta !== -1)
+      ? String.fromCharCode(65 + resposta)
+      : "<i style='color:#888'>Não lida</i>";
+    let letraGabarito = gabarito.length > i
+      ? String.fromCharCode(65 + gabarito[i])
+      : "-";
+    let acertou = (gabarito.length > i && resposta === gabarito[i]);
+    if (acertou) acertos++;
+    detalheQuestoesHTML += `<div>
+      Questão <b>${i + 1}</b>:
+      Marcada: <b style="color:${acertou ? '#16a34a':'#dc2626'}">${letraAluno}</b>
+      ${acertou ? '✅' : `❌ <span style="color:#17685d;">(Correta: <b>${letraGabarito}</b>)</span>`}
+    </div>`;
+  }
+
+  let correcaoHTML = `
+    <div style="display:flex; justify-content:center; margin-bottom:15px;">
+      <button class="botao" onclick="reiniciarCorrecao()" style="background:#fff; color:#16a34a; border:2px solid #16a34a;">
+        Corrigir outra prova
+      </button>
+    </div>
+    <div style="font-size:2.6em; font-weight:bold; color:#16a34a; margin-bottom:8px; text-align:center;">
+      ${acertos} / ${gabarito.length}
+    </div>
+    <div style="font-size:0.99em; color:#0e7490; text-align:left; background:#e0f2fe; border-radius:8px; padding:5px 8px; margin-bottom:10px;">
+    </div>
+    ${detalheQuestoesHTML}
+  `;
+
+  document.getElementById('debug-section').innerHTML = correcaoHTML;
+  document.querySelector('.desc').style.display = "none";
+  document.getElementById('resultado-section').classList.add("show");
+
+  src.delete(); gray.delete(); circles.delete();
+  if (video && video.srcObject) {
+    let tracks = video.srcObject.getTracks();
+    tracks.forEach(track => track.stop());
+  }
+}
+
+async function reiniciarCorrecao() {
+  document.getElementById('gabarito-section').classList.remove("show");
+  document.getElementById('resultado-section').classList.remove("show");
+  document.getElementById('reader').style.display = "";
+  document.getElementById('qr-result').innerHTML = "";
+  document.getElementById('debug-section').innerHTML = "";
+  document.querySelector('.desc').style.display = "";
+
+  let oldOverlay = document.getElementById('canvas-overlay-debug');
+  if (oldOverlay) oldOverlay.remove();
+  let debugImg = document.getElementById('debug-img');
+  if (debugImg) { debugImg.src = ""; debugImg.style.display = "none"; }
+
+  window.provaParams = null;
+
+  if (html5Qr) {
+    try { await html5Qr.stop(); } catch (e) {}
+    html5Qr = null;
+  }
+  startQrCamera();
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,605 @@
+<!DOCTYPE mongo>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>QI-Provas: Banco de Questões</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script>
+    window.MathJax = { tex: {inlineMath: [['\\(','\\)']]}, svg: {fontCache: 'global'} };
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'verde-clinica': '#25d0ab',
+            'verde-suave': '#e6fcf6',
+            'verde-titulo': '#14b8a6',
+            'azul-suave': '#e8f9fb',
+            'cinza-borda': '#d2f4eb'
+          },
+          fontFamily: {
+            'inter': ['Inter', 'Arial', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" />
+  <style>
+    body {
+      background: #e6fcf6;
+      font-family: 'Inter', Arial, sans-serif;
+    }
+    ::selection {
+      background: #bff0e4;
+    }
+    .btn-flutuante {
+      position: fixed;
+      right: 36px;
+      bottom: 36px;
+      z-index: 9999;
+      background: #25d0ab;
+      color: #fff;
+      font-weight: bold;
+      border: none;
+      border-radius: 36px;
+      padding: 16px 34px;
+      font-size: 1.18rem;
+      box-shadow: 0 6px 28px #25d0ab33;
+      cursor: pointer;
+      transition: background .16s, transform .1s;
+    }
+    .btn-flutuante:hover { background: #14b8a6; color: #fff; transform: scale(1.03);}
+    .card-questao {
+      background: #fff;
+      border: 1.5px solid #d2f4eb;
+      border-radius: 18px;
+      box-shadow: 0 4px 32px #14b8a610;
+      padding: 32px 28px 22px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      transition: box-shadow .16s;
+    }
+    .card-questao:hover {
+      box-shadow: 0 8px 36px #25d0ab25;
+      border-color: #25d0ab88;
+    }
+    .enunciado-blocos {
+      font-size: 1.08rem;
+      color: #000000;
+    }
+    .questao-checkbox {
+      accent-color: #0a0c0c;
+      width: 22px; height: 22px; margin-top: 4px;
+    }
+    .filtros select, .filtros input {
+      border: 1.5px solid #d2f4eb;
+      background: #fff;
+      color: #197868;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 1.02rem;
+      margin-bottom: 2px;
+      transition: border .12s;
+      outline: none;
+    }
+    .filtros select:focus, .filtros input:focus {
+      border: 1.5px solid #25d0ab;
+      background: #e6fcf6;
+    }
+    .editar-btn {
+      background: #14b8a6;
+      color: #fff;
+      border-radius: 10px;
+      padding: 8px 20px;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: background .13s;
+      border: none;
+      margin-right: 5px;
+    }
+    .editar-btn:hover { background: #197868; }
+    .excluir-btn {
+      background: #f87171;
+      color: #fff;
+      border-radius: 10px;
+      padding: 8px 20px;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: background .13s;
+      border: none;
+    }
+    .excluir-btn:hover { background: #be2222;}
+    .msg-erro {
+      color: #e53e3e;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .bloco-editavel {
+  background: #f8fafc;
+  border: 1px dashed #d2f4eb;
+  border-radius: 10px;
+  padding: 8px;
+  margin-bottom: 10px;
+  position: relative;
+  transition: box-shadow .14s, border .14s;
+}
+.bloco-editavel.dragover {
+  border: 2px solid #25d0ab;
+  background: #e6fcf6;
+}
+.bloco-handle {
+  cursor: move;
+  user-select: none;
+}
+
+
+
+  </style>
+</head>
+<body class="min-h-screen text-[#197868]">
+
+  <div class="max-w-3xl mx-auto pt-8 pb-14 px-4">
+    <div class="flex flex-col items-center mb-6">
+      <h1 class="text-4xl font-bold mb-1 text-verde-titulo" style="letter-spacing:-1px;">IQ-PRO</h1>
+      <div class="text-xl font-medium text-[#197868] mb-3 text-center">Seu banco inteligente de questões para montar provas!</div>
+      <div class="rounded-lg bg-verde-suave px-4 py-2 text-center text-[#2a7e6a] text-base mb-1 shadow-sm border border-verde-clinica/10">
+        Selecione as questões por disciplina e insira na prova!
+      </div>
+    </div>
+
+    <div class="filtros grid grid-cols-1 gap-3 mb-7">
+      <select id="filtroArea"></select>
+      <select id="filtroComponente"></select>
+      <input id="objetoInput" type="text" placeholder="Objeto do conhecimento (ex: Barroco, Vetor, Substantivo)">
+    </div>
+    <div id="listaQuestoes"></div>
+  </div>
+
+
+  
+  <button id="btnAdicionarProva" class="btn-flutuante shadow-xl">Adicionar à Prova</button>
+
+
+
+<!-- ... SEU HTML INICIAL ... -->
+
+<!-- MODAL DE EDIÇÃO -->
+<div id="modalEditar" class="fixed inset-0 z-50 bg-black/30 flex items-center justify-center hidden">
+  <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 relative">
+    <button id="btnFecharModal" class="absolute right-4 top-4 text-gray-400 text-2xl font-bold hover:text-red-600">&times;</button>
+    <h2 class="text-xl font-bold mb-4 text-verde-titulo">Editar Questão</h2>
+   <div id="editarConteudo" style="max-height:75vh; overflow-y:auto; min-height:120px;"></div>
+    <div class="flex gap-2 mt-6">
+      <button id="btnAddTexto" class="bg-verde-titulo px-3 py-1 rounded text-white">Adicionar Texto</button>
+      <button id="btnAddImagem" class="bg-blue-500 px-3 py-1 rounded text-white">Adicionar Imagem</button>
+      <button id="btnSalvarEdicao" class="bg-green-600 px-4 py-2 rounded text-white font-bold ml-auto">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Variável global para edição
+let questaoEmEdicao = null;
+let questaoEmEdicaoIdx = null;
+
+// Função para renderizar o modal de edição
+function abrirModalEditar(q, idx) {
+  questaoEmEdicao = JSON.parse(JSON.stringify(q));
+  questaoEmEdicaoIdx = idx;
+  const editarConteudo = document.getElementById('editarConteudo');
+
+  // Renderiza campos dos blocos
+  editarConteudo.innerHTML = questaoEmEdicao.blocos.map((bloco, i) => `
+  <div class="mb-4 bloco-editavel" draggable="true" data-bloco-idx="${i}">
+    <div class="cursor-move text-2xl mb-2 text-gray-400 select-none bloco-handle" title="Arraste para mover">☰</div>
+    ${
+      bloco.tipo === "texto" || bloco.tipo === "enunciado" ? `
+        <label class="font-bold">Texto/Enunciado:</label>
+        <textarea class="w-full rounded border p-2 mt-1" rows="3" onchange="atualizaBlocoTexto(${i}, this.value)">${bloco.conteudo || ""}</textarea>
+      ` : bloco.tipo === "imagem" ? `
+        <label class="font-bold">Imagem (URL ou upload):</label>
+        <input type="text" class="w-full rounded border p-2 mt-1" value="${bloco.url || ""}" placeholder="Cole uma URL de imagem" onchange="atualizaBlocoImagem(${i}, this.value)">
+        <input type="file" accept="image/*" class="mt-2" onchange="uploadNovaImagem(event, ${i})">
+        ${bloco.url ? `<img src="${bloco.url.startsWith('http') ? bloco.url : 'http://localhost:3001'+bloco.url}" class="mt-2 rounded shadow max-h-32 mx-auto">` : ""}
+      ` : bloco.tipo === "alternativas" ? `
+        <label class="font-bold">Alternativas:</label>
+        ${bloco.alternativas.map((alt, j) => `
+          <div class="flex items-center gap-2 mt-1">
+            <input type="radio" name="alternativaCorreta" ${bloco.correta == j ? "checked" : ""} onclick="marcaAlternativaCorreta(${i}, ${j})">
+            <input type="text" class="flex-1 rounded border p-1" value="${alt}" onchange="atualizaAlternativa(${i}, ${j}, this.value)">
+            <button onclick="removeAlternativa(${i}, ${j})" class="text-red-500 font-bold text-lg">×</button>
+          </div>
+        `).join('')}
+        <button onclick="adicionaAlternativa(${i})" class="mt-2 px-2 py-1 bg-gray-200 rounded">+ Alternativa</button>
+      ` : ''
+    }
+  </div>
+`).join('') + `
+  <button onclick="adicionaBlocoTexto()" class="px-2 py-1 bg-gray-200 rounded mb-2 mr-2">+ Texto</button>
+  <button onclick="adicionaBlocoImagem()" class="px-2 py-1 bg-gray-200 rounded mb-2">+ Imagem</button>
+`;
+
+ document.getElementById('modalEditar').classList.remove('hidden');
+setTimeout(ativarDragAndDropBlocos, 100);
+
+}
+
+// ====== Funções auxiliares de edição ======
+window.atualizaBlocoTexto = function(idx, value) {
+  questaoEmEdicao.blocos[idx].conteudo = value;
+}
+window.atualizaBlocoImagem = function(idx, value) {
+  questaoEmEdicao.blocos[idx].url = value;
+}
+window.uploadNovaImagem = async function(event, idx) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append("imagem", file);
+  const resp = await fetch("http://localhost:3001/api/upload-imagem", {
+    method: "POST",
+    body: formData
+  });
+  const data = await resp.json();
+  if (data && data.url) {
+    questaoEmEdicao.blocos[idx].url = data.url;
+    abrirModalEditar(questaoEmEdicao, questaoEmEdicaoIdx); // Rerenderiza para mostrar imagem nova
+  }
+}
+window.atualizaAlternativa = function(idx, altIdx, value) {
+  questaoEmEdicao.blocos[idx].alternativas[altIdx] = value;
+}
+window.marcaAlternativaCorreta = function(idx, altIdx) {
+  questaoEmEdicao.blocos[idx].correta = altIdx;
+}
+window.removeAlternativa = function(idx, altIdx) {
+  questaoEmEdicao.blocos[idx].alternativas.splice(altIdx, 1);
+  if (questaoEmEdicao.blocos[idx].correta >= questaoEmEdicao.blocos[idx].alternativas.length) {
+    questaoEmEdicao.blocos[idx].correta = 0;
+  }
+  abrirModalEditar(questaoEmEdicao, questaoEmEdicaoIdx);
+}
+window.adicionaAlternativa = function(idx) {
+  questaoEmEdicao.blocos[idx].alternativas.push("");
+  abrirModalEditar(questaoEmEdicao, questaoEmEdicaoIdx);
+}
+window.adicionaBlocoTexto = function() {
+  questaoEmEdicao.blocos.push({ tipo: "texto", conteudo: "" });
+  abrirModalEditar(questaoEmEdicao, questaoEmEdicaoIdx);
+}
+window.adicionaBlocoImagem = function() {
+  questaoEmEdicao.blocos.push({ tipo: "imagem", url: "" });
+  abrirModalEditar(questaoEmEdicao, questaoEmEdicaoIdx);
+}
+
+// ====== Botão Salvar ======
+document.getElementById('btnSalvarEdicao').onclick = async () => {
+  // Atualiza no backend (PUT)
+  const id = questaoEmEdicao._id;
+  await fetch(`http://localhost:3001/api/questoes/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(questaoEmEdicao)
+  });
+  document.getElementById('modalEditar').classList.add('hidden');
+  location.reload();
+};
+document.getElementById('btnFecharModal').onclick = () => {
+  document.getElementById('modalEditar').classList.add('hidden');
+};
+
+// ==== Hook no botão Editar do CARD ====
+setTimeout(() => {
+  document.querySelectorAll('.editar-btn').forEach((btn, idx) => {
+    btn.onclick = () => abrirModalEditar(window.questoes[idx], idx);
+  });
+}, 1000);
+
+function ativarDragAndDropBlocos() {
+  const blocos = document.querySelectorAll('#editarConteudo .bloco-editavel');
+  let dragSrcIdx = null;
+
+  blocos.forEach(bloco => {
+    bloco.addEventListener('dragstart', (e) => {
+      dragSrcIdx = Number(bloco.dataset.blocoIdx);
+      bloco.classList.add('opacity-50');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    bloco.addEventListener('dragend', () => {
+      dragSrcIdx = null;
+      blocos.forEach(b => b.classList.remove('opacity-50', 'dragover'));
+    });
+    bloco.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      bloco.classList.add('dragover');
+    });
+    bloco.addEventListener('dragleave', () => {
+      bloco.classList.remove('dragover');
+    });
+    bloco.addEventListener('drop', (e) => {
+      e.preventDefault();
+      bloco.classList.remove('dragover');
+      const dropIdx = Number(bloco.dataset.blocoIdx);
+      if (dragSrcIdx !== null && dragSrcIdx !== dropIdx) {
+        // Move bloco na lista
+        const arr = questaoEmEdicao.blocos;
+        const moved = arr.splice(dragSrcIdx, 1)[0];
+        arr.splice(dropIdx, 0, moved);
+        abrirModalEditar(questaoEmEdicao, questaoEmEdicaoIdx);
+        setTimeout(ativarDragAndDropBlocos, 100); // reativa drag nos blocos do novo render
+      }
+    });
+  });
+}
+
+
+
+
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const listaQuestoes = document.getElementById("listaQuestoes");
+      const filtroArea = document.getElementById("filtroArea");
+      const filtroComponente = document.getElementById("filtroComponente");
+      const objetoInput = document.getElementById("objetoInput");
+      const btnAdicionarProva = document.getElementById("btnAdicionarProva");
+
+      let questoes = [];
+      let selecionadas = new Set();
+
+      // Áreas e componentes fixos
+      const AREAS = [
+        "Linguagens", "Matemática", "Ciências Humanas", "Ciências da Natureza"
+      ];
+      const COMPONENTES = [
+        "Artes", "Biologia", "Educação Física", "Filosofia", "Física",
+        "Geografia", "História", "Língua Estrangeira", "Língua Portuguesa",
+        "Matemática", "Química", "Sociologia"
+      ];
+
+      filtroArea.innerHTML = `<option value="">Área do conhecimento</option>` +
+        AREAS.map(a => `<option value="${a}">${a}</option>`).join("");
+      filtroComponente.innerHTML = `<option value="">Componentes Curriculares</option>` +
+        COMPONENTES.map(c => `<option value="${c}">${c}</option>`).join("");
+
+      async function carregarQuestoes() {
+        try {
+          const res = await fetch("http://localhost:3001/api/questoes");
+          questoes = await res.json();
+          mostrarQuestoes();
+        } catch (err) {
+          listaQuestoes.innerHTML = '<p class="msg-erro">Erro ao buscar questões. Verifique o servidor.</p>';
+        }
+      }
+
+      function renderizarBlocosEnunciado(blocosData) {
+  let blocos;
+  try {
+    blocos = Array.isArray(blocosData) ? blocosData : JSON.parse(blocosData);
+    if (!Array.isArray(blocos)) throw new Error();
+  } catch {
+    return `<div class="whitespace-pre-line">${blocosData}</div>`;
+  }
+
+  // Primeiro procura o bloco fonte
+  let fonteHtml = '';
+  const blocosFiltrados = blocos.filter(bloco => {
+    if (bloco.tipo === "fonte" && bloco.fonte && bloco.fonte.trim() !== "") {
+      fonteHtml = `<div class="mb-1 text-lg text-gray-900 font-semibold">${bloco.fonte}</div>`;
+
+      return false; // não inclui esse bloco na renderização normal
+    }
+    return true; // mantém os outros blocos
+  });
+
+  // Renderiza os blocos (exceto fonte)
+  let restoHtml = blocosFiltrados.map(bloco => {
+   if (bloco.tipo === "texto" || bloco.tipo === "enunciado") {
+  let conteudo = bloco.conteudo || "";
+  // Converte ![](url) para <img src="url" ...>
+  conteudo = conteudo.replace(/!\[\]\((.*?)\)/g, (match, url) => {
+  // Se já começa com http, usa direto. Senão, prefixa com localhost:3001/
+  const src = url.startsWith("http") ? url : `http://localhost:3001/${url}`;
+  return `<div style="text-align:center;margin:8px 0;">
+            <img src="${src}" style="max-height:180px;border-radius:10px;box-shadow:0 4px 18px #ccc;border:1.5px solid #e6fcf6;">
+          </div>`;
+});
+
+  conteudo = conteudo.replace(/\n/g, '<br>');
+  return `<div class="mb-2 text-black text-justify">${conteudo}</div>`;
+}
+
+  if (bloco.tipo === "imagem" && bloco.url) {
+  let src = bloco.url;
+  if (/^https?:\/\//i.test(src)) {
+    // URL externa, usa direto
+    // nada a fazer
+  } else if (/^data:/i.test(src)) {
+    // Base64, usa direto
+    // nada a fazer
+  } else {
+    // Local
+    if (!src.startsWith("/")) src = "/" + src;
+    src = "http://localhost:3001" + src;
+  }
+  return `<div class="mb-2 flex flex-col items-center">
+    <img src="${src}" class="rounded max-h-60 mb-1 shadow" style="border:1.5px solid #e6fcf6"/>
+    ${bloco.referencia ? `<div class="text-xs text-gray-400">${bloco.referencia}</div>` : ''}
+  </div>`;
+}
+
+
+
+    if (bloco.tipo === "formula" && bloco.conteudo) {
+      return `<div class="mt-2 bg-verde-suave p-2 rounded text-verde-clinica text-lg border border-verde-clinica/20">\\(${bloco.conteudo}\\)</div>`;
+    }
+    return '';
+  }).join("");
+
+  return fonteHtml + restoHtml;
+}
+
+
+      function mostrarQuestoes() {
+        const area = filtroArea.value;
+        const componente = filtroComponente.value;
+        const objeto = objetoInput.value.trim().toLowerCase();
+
+        const questoesFiltradas = questoes.filter(q => {
+  const areaOk = !area || ((q.areaConhecimento || "").toLowerCase() === area.toLowerCase());
+  const componenteOk = !componente || ((q.componenteCurricular || "").toLowerCase() === componente.toLowerCase());
+  const objetoOk = !objeto || ((q.objetoConhecimento || "").toLowerCase().includes(objeto));
+  return areaOk && componenteOk && objetoOk;
+});
+
+
+        listaQuestoes.innerHTML = "";
+
+        for (const q of questoesFiltradas) {
+          const card = document.createElement("div");
+card.className = "card-questao";
+
+// --- NOVO BLOCO: imagensExtraHtml ---
+let imagensNoTexto = [];
+if (Array.isArray(q.blocos)) {
+  q.blocos.forEach(bloco => {
+    if (bloco.tipo === "texto" || bloco.tipo === "enunciado") {
+      let rx = /!\[\]\((.*?)\)/g, m;
+      while (m = rx.exec(bloco.conteudo || "")) imagensNoTexto.push(m[1]);
+    }
+  });
+}
+let imagensExtraHtml = "";
+if (Array.isArray(q.files)) {
+  q.files.forEach(url => {
+    if (!imagensNoTexto.includes(url)) {
+      imagensExtraHtml += `<div class="flex justify-center mb-2">
+        <img src="${url}" style="max-height:180px;border-radius:10px;box-shadow:0 4px 18px #ccc;border:1.5px solid #e6fcf6;">
+      </div>`;
+    }
+  });
+}
+
+// --- TEMPLATE DO CARD REFORMULADO ---
+card.innerHTML = `
+  <input type="checkbox" class="questao-checkbox" data-id="${q._id}" ${selecionadas.has(q._id) ? "checked" : ""}>
+  <div class="flex-1">
+    ${imagensExtraHtml}
+    <div class="enunciado-blocos mb-2">${renderizarBlocosEnunciado(q.blocos)}</div>
+    <ul class="mb-4 space-y-1">
+      ${
+        (() => {
+          let altBloco = Array.isArray(q.blocos)
+            ? q.blocos.find(b => b.tipo === "alternativas")
+            : null;
+          let alternativas = altBloco?.alternativas || q.alternativas || [];
+          let correta = typeof altBloco?.correta === "number" ? altBloco.correta : (q.correta || 0);
+          return alternativas.map((alt, i) =>
+            `<li class="${i === correta ? 'text-verde-clinica font-bold' : 'text-black'} text-justify">
+              ${String.fromCharCode(65 + i)}) ${alt}
+            </li>`
+          ).join("");
+        })()
+      }
+    </ul>
+    <div class="flex space-x-2">
+      <button class="editar-btn" data-id="${q._id}">✏️ Editar</button>
+      <button class="excluir-btn" data-id="${q._id}">🗑️ Excluir</button>
+    </div>
+  </div>
+`;
+
+
+
+          listaQuestoes.appendChild(card);
+        }
+
+        // MathJax para fórmulas matemáticas dos blocos
+        if (window.MathJax) MathJax.typesetPromise();
+
+        // Checkbox: seleção múltipla
+        document.querySelectorAll(".questao-checkbox").forEach(checkbox => {
+          checkbox.addEventListener("change", () => {
+            const id = checkbox.getAttribute("data-id");
+            if (checkbox.checked) {
+              selecionadas.add(id);
+            } else {
+              selecionadas.delete(id);
+            }
+          });
+        });
+
+        // Botão editar
+       // Botão editar: abre o modal
+document.querySelectorAll(".editar-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const id = btn.getAttribute("data-id");
+    const questao = questoes.find(q => q._id === id);
+    abrirModalEditar(questao, questoes.indexOf(questao));
+  });
+});
+
+
+        // Botão excluir
+        document.querySelectorAll(".excluir-btn").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-id");
+            const confirmado = confirm("Tem certeza que deseja excluir esta questão?");
+            if (!confirmado) return;
+
+            try {
+              const res = await fetch(`http://localhost:3001/api/questoes/${id}`, { method: "DELETE" });
+              if (res.ok) {
+                btn.closest(".card-questao").remove();
+              } else {
+                alert("Erro ao excluir a questão.");
+              }
+            } catch (err) {
+              alert("Erro ao tentar excluir a questão.");
+            }
+          });
+        });
+      }
+
+      filtroArea.addEventListener("change", mostrarQuestoes);
+      filtroComponente.addEventListener("change", mostrarQuestoes);
+      objetoInput.addEventListener("input", mostrarQuestoes);
+
+      btnAdicionarProva.addEventListener("click", () => {
+        // Adiciona todas as selecionadas ao localStorage (evita duplicidade)
+        let questoesSelecionadas = JSON.parse(localStorage.getItem("questoesSelecionadas") || "[]");
+        let idsJaSelecionados = questoesSelecionadas.map(q => q._id);
+
+        let novas = Array.from(selecionadas).map(id => questoes.find(q => q._id === id))
+          .filter(q => q && !idsJaSelecionados.includes(q._id))
+          .map(q => {
+            let qCopia = { ...q };
+            // Garante string do enunciado para montar-prova
+            if (Array.isArray(qCopia.enunciado)) qCopia.enunciado = JSON.stringify(qCopia.enunciado);
+            if (typeof qCopia.enunciado !== "string") qCopia.enunciado = String(qCopia.enunciado);
+            return qCopia;
+          });
+
+        let acumuladas = questoesSelecionadas.concat(novas);
+        localStorage.setItem("questoesSelecionadas", JSON.stringify(acumuladas));
+
+        if (novas.length > 0) {
+          alert(`${novas.length} questão(ões) adicionada(s) à prova!`);
+        } else {
+          alert("Nenhuma nova questão foi selecionada ou todas já estavam na prova.");
+        }
+        // Redireciona para montar prova
+        window.location.href = "montar-prova.html";
+      });
+
+      carregarQuestoes();
+    });
+  </script>
+</body>
+</html>
